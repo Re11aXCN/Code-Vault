@@ -1,0 +1,10 @@
+**/.vs
+**/Intermediate
+**/Debug
+**/Release
+**/x64
+**/Bin
+**/poppler-24.07.0
+**/ThirdParty
+**/.venv
+**/out
