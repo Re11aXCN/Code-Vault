@@ -17,4 +17,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus") #为了使得MSVC __cp
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:utf-8>")
 
-add_executable(strvec_exe src/class/strvec.cxx "src/designed/singleton_test.cxx")
+add_executable(strvec_exe 
+ "src/class/virtual_oop.cxx")
