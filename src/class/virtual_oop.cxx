@@ -58,6 +58,6 @@ struct C : B {
 	//void f4() override;		//错误：B没有名为f4的函数
 };
 struct D : C {
-	void f1(int) const override; //错误：final不能被重写
+	//void f1(int) const override; //错误：final不能被重写
 };
 #endif // !_VIRTUAL_OOP_H_
