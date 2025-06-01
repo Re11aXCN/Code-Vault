@@ -18,10 +18,10 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:utf-8>")
 
 # BOOST
-set(BOOST_ROOT "D:/Development/boost_1_87_0")
+set(BOOST_ROOT "D:/Development/boost_1_87_0/build")
 find_package(Boost 1.87.0 REQUIRED COMPONENTS system)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-add_executable(strvec_exe 
- "src/template/type_traits.cxx")
+add_executable(cplusplus_exe
+ "src/template/template_type_traits.cxx")

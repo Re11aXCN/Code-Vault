@@ -3,7 +3,18 @@
 - **基类的析构函数必须定义为`virtual`**
 - **子类重载父类的方法必须定义为`override`**
 - **子类和基类有相同的成员或者非虚函数、非静态的成员函数，默认使用子类的如果想要使用基类成员，需要加上基类的名字作用域，基类::名字相同的方法()**
-- **如果子类和基类的虚函数重名，但是参数类型不同，就不是重写而是隐藏，如果子类实现和基类一样的普通非虚函数成员函数，就是覆盖，会隐藏基类同名函数**，重载是函数名相同但是参数类型不同
+- **如果子类和基类的虚函数重名，但是参数类型不同，就不是重写而是隐藏，如果子类实现和基类一样的普通非虚函数成员函数（不管访问权限如何（public、protected、private），就是覆盖override，会隐藏基类同名函数**，重载是函数名相同但是参数类型不同
+
+```cpp
+#include <iostream>
+class Parent {
+private:
+    virtual void first_name() {std::cout << "Parent::first_name()" << endl;}
+    void last_name() { std::cout << "Parent::last_name()" << endl; }
+public:
+    
+}
+```
 
 
 

@@ -44,6 +44,33 @@ void print_type_info()
 		std::cout << std::source_location::current().function_name() << " : " << typeid(T).name() << std::endl;
 	};
 	print_type(std::vector<int>{});
+	char* cc = nullptr;
+	char arr[5];
+	std::cout << typeid(decltype(arr)).name() << std::endl;
+	std::cout << typeid(decltype(cc)).name() << std::endl;
+
+	auto forward = []<typename T> (std::remove_reference_t<T>&arg) constexpr -> T&& {
+		return static_cast<T&&>(arg);
+	};
+
+	int left = 10;
+	int& refleft = left;
+	int&& refright = 20;
+	
+	//forward<int>(left); // 错误调用
+	forward.operator()<int>(left); // 正确调用
+
+	std::cout << "left = "
+		<< boost::typeindex::type_id_with_cvr<decltype(std::forward<int>(left))>().pretty_name()
+		<< "\nrefleft = "
+		<< boost::typeindex::type_id_with_cvr<decltype(std::forward<int&>(refleft))>().pretty_name()
+		<< "\nrefright1 = "
+		<< boost::typeindex::type_id_with_cvr<decltype(std::forward<int&&>(refright))>().pretty_name()
+		<< "\nrefright2 = "
+		<< boost::typeindex::type_id_with_cvr<decltype(std::forward<int>(refright))>().pretty_name()
+		<< "\nrefright3 = "
+		<< boost::typeindex::type_id_with_cvr<decltype(std::forward<int>(12))>().pretty_name()
+		<< std::endl;
 }
 
 void type_degrade()
@@ -82,11 +109,8 @@ void type_degrade()
 	const int& rxX = xX;
 
 	deduce(rxX); // T 被推导为 int（移除了 const 和引用）
-
-	auto forward = []<typename T> (std::remove_reference_t<T>&arg) constexpr -> T&& {
-		return static_cast<T&&>(arg);
-	};
 }
+
 int main()
 {
 	determine_type();
