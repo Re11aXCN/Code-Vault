@@ -24,7 +24,7 @@
 
 # 实现方式
 
-### 1. 使用Meyers单例（仅适用于静态局部变量方式）——最优
+### 1. 使用Meyers单例（仅适用于静态局部变量方式）
 
 #### （1）Lazy
 
@@ -340,3 +340,58 @@ private:
 };
 ```
 
+# 实现问题
+
+## 双加锁/C++11静态局部变量
+
+```cpp
+static Singleton *_instance;
+static std::mutex _mutex;
+
+static Singleton& getInstance
+{
+    if(!_instance)
+    	_instance = new Singleton;
+    return *_instance;
+}// 多个线程同时访问可能创建多个_instance，内存泄漏
+
+
+static Singleton& getInstance
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    if(!_instance)
+    	_instance = new Singleton;
+    return *_instance;
+}// 每次访问都要加锁访问锁非常耗费资源时间
+
+
+static Singleton& getInstance
+{
+    if(!_instance){//第三个线程在这里!_instance判断
+        std::lock_guard<std::mutex> lock(_mutex);//第二个线程被阻止在锁外等待
+    	if(!_instance){
+            _instance = new Singleton; // 第一个线程正在创建
+        }
+    }
+    return *_instance;
+}// 第二次访问不需要加锁，DCLP，但是会出现一个问题，如果第一个线程没有创建完成创建了一半，导致!_instance不为空，第三个线程将会返回一个错误的对象，出现很大的问题，原因是_instance = new Singleton;的执行是三个指令（1.创建对象空间，2.对象初始化调用对象构造函数，3.把初始化好的对象赋值给指针），但是经过编译器的优化（会执行1 3 2）所以导致了该问题，解决方法内存屏障
+
+//内存屏障写法
+
+
+
+
+//C++11以后规定，静态局部变量初始化会自动加锁
+    static T& getInstance() {
+        static T instance;//gcc关掉编译器加锁，-fno-threadsafe-statics
+        return instance;
+    }
+```
+
+汇编查看初始化加锁
+
+![image-20250602224955641](assets/image-20250602224955641.png)
+
+GCC -fno-threadsafe-statics去锁
+
+![image-20250602225046162](assets/image-20250602225046162.png)

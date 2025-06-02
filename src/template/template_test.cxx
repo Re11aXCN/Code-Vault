@@ -1,7 +1,14 @@
 ﻿#include "template_blob.hpp"
 #include "template_autodump.hpp"
+#include "template_type_traits.h"
+
+#include "ringbuffer.hpp"
+
 #include <iostream>
 #include <string>
+#include <thread>
+#include <chrono>
+
 void test_blob() {
     // 创建一个字符串Blob对象
     Blob<std::string> b1{ "Hello", "World", "C++", "Templates" };
@@ -69,4 +76,38 @@ void test_autodump() {
 
     std::map<std::string, int> scores{ {"Alice", 95}, {"Bob", 87} };
     AUTO_DUMP_FORMAT(scores.size(), "学生数量: {}");
+}
+int main() {
+    //test template_type_traits
+    determine_type();
+    print_type_info();
+
+    RingBuffer<int> rb(1024); // 创建容量为1024的环形缓冲区
+    using namespace std::chrono;
+    steady_clock::time_point start = steady_clock::now(); // 记录开始时间
+    // 生产者线程
+    std::thread producer([&] {
+        for (int i = 0; i < 1000; ++i) {
+            while (!rb.push(i)) {
+                std::this_thread::yield(); // 缓冲区满时让步
+            }
+        }
+        });
+
+    // 消费者线程
+    std::thread consumer([&] {
+        int value;
+        for (int i = 0; i < 1000; ++i) {
+            while (!rb.pop(value)) {
+                std::this_thread::yield(); // 缓冲区空时让步
+            }
+            std::cout << value << " ";
+        }
+        });
+
+    producer.join();
+    consumer.join();
+    steady_clock::time_point end = steady_clock::now(); // 记录结束时间
+    std::cout << "总耗时: " << duration_cast<milliseconds>(end - start).count() << "ms" << std::endl; // 输出总耗时
+    return 0;
 }

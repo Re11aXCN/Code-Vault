@@ -24,4 +24,4 @@ include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
 add_executable(cplusplus_exe
- "src/template/template_type_traits.cxx")
+ "src/template/template_test.cxx")

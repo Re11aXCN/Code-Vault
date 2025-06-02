@@ -7,7 +7,7 @@
 #include <vector>
 #include <boost/type_index.hpp>
 
-void determine_type()
+extern void determine_type()
 {
 	struct Integer { int i = 0; };
 	struct Float { float f = 0.0f; };
@@ -27,7 +27,7 @@ void determine_type()
 		<< std::endl;
 }
 
-void print_type_info()
+extern void print_type_info()
 {
 	int x = 10;
 	decltype(x) y = 20;  // y 的类型是 int
@@ -109,12 +109,5 @@ void type_degrade()
 	const int& rxX = xX;
 
 	deduce(rxX); // T 被推导为 int（移除了 const 和引用）
-}
-
-int main()
-{
-	determine_type();
-	print_type_info();
-	return 0;
 }
 #endif // !_TYPE_TRAITS_H_

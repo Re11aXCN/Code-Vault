@@ -3,6 +3,7 @@
 - **基类的析构函数必须定义为`virtual`**
 - **子类重载父类的方法必须定义为`override`**
 - **子类和基类有相同的成员或者非虚函数、非静态的成员函数，默认使用子类的如果想要使用基类成员，需要加上基类的名字作用域，基类::名字相同的方法()**
+- 静态函数不能设置为virtual，因为它只能再内存中保存一份
 - **如果子类和基类的虚函数重名，但是参数类型不同，就不是重写而是隐藏，如果子类实现和基类一样的普通非虚函数成员函数（不管访问权限如何（public、protected、private），就是覆盖override，会隐藏基类同名函数**，重载是函数名相同但是参数类型不同
 
 ```cpp
@@ -155,3 +156,103 @@ struct A {
 # friend
 
 一个类声明了其他类是它的朋友，那么其他类可以访问protected、private的成员
+
+# 虚函数表
+
+```cpp
+struct Baseclass
+{
+    Baseclass() : v(1024){}
+    virtual void f() {};
+    virtual void g() {};
+    virtual void h() {};
+    int v;
+};
+struct Deriveclass public Baseclass
+{
+    virtual void f() {};
+    virtual void g2() {};
+    virtual void h3() {};
+};
+Baseclass b;
+cout<<"类对象大小"<sizeof(b)<<endl;
+int *p =(int *)(&b);
+cout << "指向虚函数表的指针的地址” << p <endl;
+cout << "成员a地址" << p+1<endl;
+cout << "成员a的数值" << *(p+1) <<endl;
+cout << "虚函数表首地址” << (int*)(*p) <<endl;
+    
+// int 4字节， + 2 8字节
+typedef void (*Func)();    
+Deriveclass d;
+int *p = (int *)(&d);
+int *virtual_tableb = (int *)(*p);
+Func pFun  (Func)(*(virtual_tableb));
+pFun(); 
+
+pFun = (Func)(*(virtual_tableb + 2));
+pFun();
+
+pFun = (Func)(*(virtual_tableb + 4));
+pFun();
+
+pFun = (Func)(*(virtual_tableb + 6));
+pFun();
+
+pFun = (Func)(*(virtual_tableb + 8));
+pFun();
+```
+
+![image-20250602160115394](assets/image-20250602160115394.png)
+
+![image-20250602160546237](assets/image-20250602161943888.png)
+
+![image-20250602160546237](assets/image-20250602160546237.png)
+
+![image-20250602162205178](assets/image-20250602162205178.png)
+
+
+
+## 内存对齐（具体请查看计算机原理）
+
+使用VS2022查看 的大小Baseclass
+
+### 1.有成员变量和虚函数
+
+![image-20250602160926035](assets/image-20250602160926035.png)
+
+### 2.仅有虚函数
+
+![image-20250602160943566](assets/image-20250602160943566.png)
+
+### 3.仅有成员变量
+
+![image-20250602160956230](assets/image-20250602160956230.png)
+
+### 4.总结
+
+在计算机中指针就是计算机的位数大小，**64位8字节，32位4字节**，我的电脑是64位，Baseclass定义了虚函数，说明有虚函数表，那么需要一**个8字节的指针进行存储表地址**，且在对象地址的头部，然后紧接着是成员变量int4字节，但是考虑到**内存对齐，需要8字节，总体为16字节**，<u>原因是如果不对齐为8字节，那么获取 指针+1 操作会有问题</u>
+
+## 钩子函数注入
+
+```cpp
+class Baseclass
+public:
+	Baseclass() : v(1024){}
+private:
+    virtual void f() { cout << "Base::f" << endl; }
+    virtual void g() { cout << "Base::g" << endl; }
+    virtual void h() { cout << "Base::h" << endl; }
+	int v;
+}
+
+class Deriveclass : public Baseclass {
+public:
+	Deriveclass():Baseclass() {}
+}
+
+Deriveclass d;
+Func pFunc = (Func)*((int*)(*(int*)(&d)));
+pFunc(); // 输出 Base::f
+```
+
