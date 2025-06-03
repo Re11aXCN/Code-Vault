@@ -77,11 +77,9 @@ void test_autodump() {
     std::map<std::string, int> scores{ {"Alice", 95}, {"Bob", 87} };
     AUTO_DUMP_FORMAT(scores.size(), "学生数量: {}");
 }
-int main() {
-    //test template_type_traits
-    determine_type();
-    print_type_info();
 
+void test_spsc()
+{
     RingBuffer<int> rb(1024); // 创建容量为1024的环形缓冲区
     using namespace std::chrono;
     steady_clock::time_point start = steady_clock::now(); // 记录开始时间
@@ -109,5 +107,19 @@ int main() {
     consumer.join();
     steady_clock::time_point end = steady_clock::now(); // 记录结束时间
     std::cout << "总耗时: " << duration_cast<milliseconds>(end - start).count() << "ms" << std::endl; // 输出总耗时
+}
+int main() {
+    ///< test_blob
+    test_blob();
+
+    ///< test_autodump
+    test_autodump();
+
+    ///< test template_type_traits
+    determine_type();
+    print_type_info();
+
+    ///< test_spsc
+    test_spsc();
     return 0;
 }

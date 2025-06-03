@@ -23,5 +23,11 @@ find_package(Boost 1.87.0 REQUIRED COMPONENTS system)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
+if(WIN32)
+    # 设置最低支持Windows 7 (0x0601)
+    add_compile_definitions(_WIN32_WINNT=0x0601)
+endif()
+
 add_executable(cplusplus_exe
- "src/template/template_test.cxx")
+ "src/web/Test.cxx")
+ target_link_libraries(cplusplus_exe PRIVATE Boost::system)

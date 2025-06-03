@@ -247,31 +247,30 @@ private:
 
     template <typename... Args>
     bool emplace(Args&&... args) {
+        // 1. 获取当前tail（宽松加载：只需原子性，无需同步）
         size_t tail = tail_.load(std::memory_order_relaxed);
+
+        // 2. 使用缓存的消费者索引（上次获取的值）
         size_t actual_head = head_cache_;
 
-        // 检查缓冲区是否已满
+        // 第一次检查：快速路径（90%情况命中）
         if ((tail - actual_head) >= capacity_) {
-            // 刷新生产者缓存的head值
+            // 3. 可能满，需获取最新head（获取语义：看到消费者所有修改）
             actual_head = head_.load(std::memory_order_acquire);
-            head_cache_ = actual_head;
+            head_cache_ = actual_head; // 更新缓存
+
+            // 第二次检查：最终确认
             if ((tail - actual_head) >= capacity_) {
-                return false;
+                return false; // 确认为满
             }
         }
 
+        // 4. 写入数据...
         Slot& slot = buffer_[tail & mask_];
-
-        // 重用槽位：如果已有对象，先销毁
-        if (slot.is_active()) {
-            slot.destroy();
-        }
-
-        // 就地构造新对象
         slot.construct(std::forward<Args>(args)...);
 
-        // 更新tail索引
-        tail_.store((tail + 1) & (2 * capacity_ - 1), std::memory_order_release);
+        // 5. 更新tail（释放语义：确保写入对消费者可见）
+        tail_.store((tail + 1) & (2 * capacity_ - 1), std::memory_order_release); 
         return true;
     }
 
