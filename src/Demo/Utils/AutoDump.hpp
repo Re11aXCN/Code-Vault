@@ -234,3 +234,31 @@ struct ContainerStrategy {
     auto AUTO_DUMP_CONCAT(AD_CONT_, __LINE__, __COUNTER__) = AutoDump { std::move(obj), ContainerStrategy{} }
 
 #endif // !_AUTO_DUMP_HPP_
+
+/*
+Use Example
+struct Point {
+    int x, y;
+    friend std::ostream& operator<<(std::ostream& os, const Point& p) {
+        return os << "Point(" << p.x << "," << p.y << ")";
+    }
+};
+void test_autodump() {
+    // 基本类型
+    AUTO_DUMP_COUT(42);
+    AUTO_DUMP_FORMAT(3.14, "PI = {}");
+
+    
+    // 时间戳输出
+    //AUTO_DUMP_TIME("程序启动", "{}");
+    // 调试信息
+    //AUTO_DUMP_DEBUG("这是一个调试消息");
+    //
+    // 容器输出
+    std::vector<int> vec{ 1, 2, 3, 4, 5 };
+    AUTO_DUMP_CONTAINER(vec);
+
+    std::map<std::string, int> scores{ {"Alice", 95}, {"Bob", 87} };
+    AUTO_DUMP_FORMAT(scores.size(), "学生数量: {}");
+}
+*/

@@ -41,6 +41,5 @@ if(WIN32)
     add_compile_definitions(_WIN32_WINNT=0x0601)
 endif()
 
-add_executable(cplusplus_exe
- "src/web/async/AsyncTest.cxx")
+add_executable(cplusplus_exe "src/Demo/ATM.cpp")
  target_link_libraries(cplusplus_exe PRIVATE Boost::system)

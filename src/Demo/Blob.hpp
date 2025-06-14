@@ -160,3 +160,49 @@ public:
 };
 
 #endif // !_BLOB_HPP_
+
+/*
+Use Example
+void test_blob() {
+    // 创建一个字符串Blob对象
+    Blob<std::string> b1{ "Hello", "World", "C++", "Templates" };
+
+    // 创建共享同一数据的Blob对象
+    Blob<std::string> b2 = b1;  // b1和b2共享数据
+
+    // 修改b2，同时会影响b1（因为共享数据）
+    b2.push_back("Shared");
+    std::cout << "b1的最后一个元素: " << b1.back() << std::endl;  // 输出: Shared
+
+    // 使用BlobPtr遍历Blob对象
+    BlobPtr<std::string> ptr1(b1);
+    std::cout << "Blob内容: ";
+    for (size_t i = 0; i < b1.size(); ++i) {
+        std::cout << *ptr1 << " ";
+        ++ptr1;
+    }
+    std::cout << std::endl;
+
+    // 演示weak_ptr的作用
+    {
+        Blob<int> tempBlob{ 1, 2, 3 };
+        BlobPtr<int> tempPtr(tempBlob);
+
+        // 在这个作用域内可以使用tempPtr
+        std::cout << "临时Blob的第一个元素: " << *tempPtr << std::endl;
+    } // tempBlob在这里被销毁
+
+    // 如果尝试使用指向已销毁Blob的BlobPtr，会抛出异常
+    try {
+        Blob<double> tempBlob{ 1.1, 2.2, 3.3 };
+        BlobPtr<double> dangling(tempBlob);
+        tempBlob = Blob<double>(); // 重新赋值，原始数据可能被释放
+
+        // 尝试访问可能已释放的数据
+        std::cout << *dangling << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cout << "捕获异常: " << e.what() << std::endl;
+    }
+}
+*/
