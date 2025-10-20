@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "rust", 
+            "type": "lldb",
+            "request": "launch", 
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}", 
+            "args": [], 
+            "environment": [],
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask":"cargo build",
+            "stopAtEntry": false, 
+            "externalConsole": true, 
+			"runInTerminal": true
+        }
+    ]
+}

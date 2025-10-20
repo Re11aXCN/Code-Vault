@@ -1,0 +1,998 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{98d3ff78-7be6-4eb7-84c7-93ee80a4b01f}</ProjectGuid>
+    <RootNamespace>Courses</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)macrofunctest</AdditionalIncludeDirectories>
+      <EnableModules>true</EnableModules>
+      <BuildStlModules>true</BuildStlModules>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)macrofunctest</AdditionalIncludeDirectories>
+      <EnableModules>true</EnableModules>
+      <BuildStlModules>true</BuildStlModules>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="array\Array.hpp" />
+    <ClInclude Include="atomic\concurrent_list.hpp" />
+    <ClInclude Include="atomic\mtpool.hpp" />
+    <ClInclude Include="atomic\spin_barrier.hpp" />
+    <ClInclude Include="atomic\spin_mutex.hpp" />
+    <ClInclude Include="babyjson-demo-master\print.h" />
+    <ClInclude Include="bind\Signal.hpp" />
+    <ClInclude Include="co_http-master\bytes_buffer.hpp" />
+    <ClInclude Include="co_http-master\callback.hpp" />
+    <ClInclude Include="co_http-master\enum_magic.hpp" />
+    <ClInclude Include="co_http-master\expected.hpp" />
+    <ClInclude Include="co_http-master\file_utils.hpp" />
+    <ClInclude Include="co_http-master\http_client.hpp" />
+    <ClInclude Include="co_http-master\http_codec.hpp" />
+    <ClInclude Include="co_http-master\http_server.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl.h" />
+    <ClInclude Include="co_http-master\include\bearssl\bearssl.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\ccopy.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\dec16be.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\dec16le.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\dec32be.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\dec32le.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\dec64be.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\dec64le.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\enc16be.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\enc16le.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\enc32be.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\enc32le.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\enc64be.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\enc64le.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\codec\pemdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_atr.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_default_sign_asn1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_default_sign_raw.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_default_vrfy_asn1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_default_vrfy_raw.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i15_bits.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i15_sign_asn1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i15_sign_raw.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i15_vrfy_asn1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i15_vrfy_raw.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i31_bits.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i31_sign_asn1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i31_sign_raw.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i31_vrfy_asn1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_i31_vrfy_raw.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ecdsa_rta.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_all_m15.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_all_m31.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_c25519_i15.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_c25519_i31.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_c25519_m15.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_c25519_m31.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_curve25519.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_default.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_p256_m15.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_p256_m31.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_prime_i15.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_prime_i31.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_secp256r1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_secp384r1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ec\ec_secp521r1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\dig_oid.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\dig_size.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\ghash_ctmul.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\ghash_ctmul32.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\ghash_ctmul64.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\ghash_pclmul.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\ghash_pwr8.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\md5.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\md5sha1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\multihash.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\sha1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\sha2big.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\hash\sha2small.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\inner.h" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_add.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_bitlen.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_decmod.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_decode.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_decred.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_encode.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_fmont.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_iszero.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_modpow.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_modpow2.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_montmul.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_mulacc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_muladd.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_ninv15.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_reduce.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_rshift.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_sub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i15_tmont.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_add.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_bitlen.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_decmod.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_decode.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_decred.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_encode.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_fmont.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_iszero.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_modpow.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_modpow2.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_montmul.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_mulacc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_muladd.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_ninv31.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_reduce.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_rshift.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_sub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i31_tmont.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_add.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_bitlen.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_decmod.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_decode.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_decred.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_div32.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_encode.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_fmont.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_iszero.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_modpow.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_montmul.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_mulacc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_muladd.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_ninv32.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_reduce.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_sub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i32_tmont.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\int\i62_modpow2.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\mac\hmac.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\mac\hmac_ct.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rand\hmac_drbg.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_default_pkcs1_sign.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_default_pkcs1_vrfy.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_default_priv.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_default_pub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i15_pkcs1_sign.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i15_pkcs1_vrfy.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i15_priv.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i15_pub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i31_pkcs1_sign.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i31_pkcs1_vrfy.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i31_priv.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i31_pub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i32_pkcs1_sign.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i32_pkcs1_vrfy.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i32_priv.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i32_pub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i62_pkcs1_sign.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i62_pkcs1_vrfy.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i62_priv.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_i62_pub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_pkcs1_sig_pad.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_pkcs1_sig_unpad.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\rsa\rsa_ssl_decrypt.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\prf.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\prf_md5sha1.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\prf_sha256.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\prf_sha384.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_ccert_single_ec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_ccert_single_rsa.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_client.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_client_default_rsapub.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_client_full.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_engine.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_engine_default_aescbc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_engine_default_aesgcm.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_engine_default_chapol.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_engine_default_descbc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_engine_default_ec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_engine_default_ecdsa.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_engine_default_rsavrfy.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_hashes.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_hs_client.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_hs_server.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_io.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_lru.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_rec_cbc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_rec_chapol.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_rec_gcm.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_scert_single_ec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_scert_single_rsa.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_full_ec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_full_rsa.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_mine2c.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_mine2g.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_minf2c.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_minf2g.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_minr2g.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_minu2g.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\ssl\ssl_server_minv2g.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_big_cbcdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_big_cbcenc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_big_ctr.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_big_dec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_big_enc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_common.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct64.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct64_cbcdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct64_cbcenc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct64_ctr.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct64_dec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct64_enc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct_cbcdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct_cbcenc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct_ctr.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct_dec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_ct_enc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_pwr8.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_pwr8_cbcdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_pwr8_cbcenc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_pwr8_ctr.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_small_cbcdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_small_cbcenc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_small_ctr.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_small_dec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_small_enc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_x86ni.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_x86ni_cbcdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_x86ni_cbcenc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\aes_x86ni_ctr.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\chacha20_ct.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\des_ct.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\des_ct_cbcdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\des_ct_cbcenc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\des_support.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\des_tab.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\des_tab_cbcdec.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\des_tab_cbcenc.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\poly1305_ctmul.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\poly1305_ctmul32.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\poly1305_ctmulq.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\symcipher\poly1305_i15.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\x509\skey_decoder.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\x509\x509_decoder.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\x509\x509_knownkey.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\x509\x509_minimal.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl\impl\x509\x509_minimal_full.hpp" />
+    <ClInclude Include="co_http-master\include\bearssl_base.h" />
+    <ClInclude Include="co_http-master\include\bearssl_block.h" />
+    <ClInclude Include="co_http-master\include\bearssl_config.h" />
+    <ClInclude Include="co_http-master\include\bearssl_ec.h" />
+    <ClInclude Include="co_http-master\include\bearssl_hash.h" />
+    <ClInclude Include="co_http-master\include\bearssl_hmac.h" />
+    <ClInclude Include="co_http-master\include\bearssl_pem.h" />
+    <ClInclude Include="co_http-master\include\bearssl_prf.h" />
+    <ClInclude Include="co_http-master\include\bearssl_rand.h" />
+    <ClInclude Include="co_http-master\include\bearssl_rsa.h" />
+    <ClInclude Include="co_http-master\include\bearssl_ssl.h" />
+    <ClInclude Include="co_http-master\include\bearssl_x509.h" />
+    <ClInclude Include="co_http-master\include\inner.h" />
+    <ClInclude Include="co_http-master\include\sha1.hpp" />
+    <ClInclude Include="co_http-master\io_context.hpp" />
+    <ClInclude Include="co_http-master\reflect.hpp" />
+    <ClInclude Include="co_http-master\stop_source.hpp" />
+    <ClInclude Include="co_http-master\string_map.hpp" />
+    <ClInclude Include="co_http-master\timer_context.hpp" />
+    <ClInclude Include="cpp17pmrtest\memory_resource_inspector.h" />
+    <ClInclude Include="cpp17pmrtest\print.h" />
+    <ClInclude Include="cpp17pmrtest\ticktock.h" />
+    <ClInclude Include="cpp17pmrtest\wangshash.h" />
+    <ClInclude Include="cpplifetimetest\cppdemangle.h" />
+    <ClInclude Include="cpptemplateinstantiate\other.h" />
+    <ClInclude Include="cpptemplateinstantiate\printer.h" />
+    <ClInclude Include="enumreflecttest\scienum.h" />
+    <ClInclude Include="erasure\msglib.h" />
+    <ClInclude Include="function\Function.hpp" />
+    <ClInclude Include="function\print.h" />
+    <ClInclude Include="hexdump\cxxopts.hpp" />
+    <ClInclude Include="hexdump\include\concepts\compare.hpp" />
+    <ClInclude Include="hexdump\include\concepts\concepts.hpp" />
+    <ClInclude Include="hexdump\include\concepts\swap.hpp" />
+    <ClInclude Include="hexdump\include\concepts\type_traits.hpp" />
+    <ClInclude Include="hexdump\include\meta\meta.hpp" />
+    <ClInclude Include="hexdump\include\meta\meta_fwd.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\action.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\adjacent_remove_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\concepts.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\drop.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\drop_while.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\erase.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\insert.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\join.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\push_back.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\push_front.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\remove.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\remove_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\reverse.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\shuffle.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\slice.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\sort.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\split.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\split_when.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\stable_sort.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\stride.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\take.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\take_while.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\transform.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\unique.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\action\unstable_remove_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\adjacent_find.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\adjacent_remove_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\all_of.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\any_of.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\aux_\equal_range_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\aux_\lower_bound_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\aux_\merge_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\aux_\merge_n_with_buffer.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\aux_\partition_point_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\aux_\sort_n_with_buffer.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\aux_\upper_bound_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\binary_search.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\contains.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\contains_subrange.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\copy_backward.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\copy_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\copy_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\count.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\count_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\ends_with.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\equal.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\equal_range.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\fill.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\fill_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\find.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\find_end.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\find_first_of.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\find_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\find_if_not.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\fold.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\fold_left.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\fold_right.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\for_each.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\for_each_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\generate.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\generate_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\heap_algorithm.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\inplace_merge.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\is_partitioned.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\is_sorted.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\is_sorted_until.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\lexicographical_compare.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\lower_bound.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\max.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\max_element.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\merge.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\min.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\minmax.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\minmax_element.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\min_element.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\mismatch.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\move.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\move_backward.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\none_of.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\nth_element.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\partial_sort.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\partial_sort_copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\partition.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\partition_copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\partition_point.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\permutation.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\remove.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\remove_copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\remove_copy_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\remove_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\replace.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\replace_copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\replace_copy_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\replace_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\result_types.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\reverse.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\reverse_copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\rotate.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\rotate_copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\sample.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\search.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\search_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\set_algorithm.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\shuffle.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\sort.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\stable_partition.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\stable_sort.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\starts_with.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\swap_ranges.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\tagspec.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\transform.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\unique.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\unique_copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\unstable_remove_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\algorithm\upper_bound.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\all.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\at.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\back.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\begin_end.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\compare.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\core.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\data.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\detail\adl_get.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\detail\config.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\detail\epilogue.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\detail\prologue.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\detail\range_access.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\detail\satisfy_boost_range.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\detail\variant.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\detail\with_braced_init_args.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\distance.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\empty.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\experimental\utility\generator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\experimental\view\shared.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\front.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\arithmetic.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\bind.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\bind_back.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\comparisons.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\compose.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\concepts.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\identity.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\indirect.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\invoke.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\not_fn.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\on.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\overload.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\pipeable.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\functional\reference_wrapper.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\getlines.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\index.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\istream_range.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\access.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\basic_iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\common_iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\concepts.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\counted_iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\default_sentinel.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\diffmax_t.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\insert_iterators.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\move_iterators.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\operations.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\reverse_iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\stream_iterators.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\traits.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator\unreachable_sentinel.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\iterator_range.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\numeric.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\numeric\accumulate.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\numeric\adjacent_difference.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\numeric\inner_product.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\numeric\iota.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\numeric\partial_sum.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range\access.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range\concepts.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range\conversion.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range\dangling.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range\operations.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range\primitives.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range\traits.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range_access.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range_concepts.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range_for.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range_fwd.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\range_traits.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\size.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\span.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\to_container.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\addressof.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\any.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\associated_types.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\basic_iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\box.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\common_iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\common_tuple.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\common_type.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\compressed_pair.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\concepts.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\copy.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\counted_iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\dangling.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\functional.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\get.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\infinity.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\invoke.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\in_place.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\iterator.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\iterator_concepts.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\iterator_traits.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\memory.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\move.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\nullptr_v.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\optional.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\polymorphic_cast.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\random.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\scope_exit.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\semiregular.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\semiregular_box.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\static_const.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\swap.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\tagged_pair.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\tagged_tuple.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\tuple_algorithm.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\unreachable.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\utility\variant.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\version.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\adaptor.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\addressof.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\adjacent_filter.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\adjacent_remove_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\all.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\any_view.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\bounded.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\cache1.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\cartesian_product.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\chunk.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\chunk_by.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\common.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\concat.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\const.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\counted.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\cycle.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\c_str.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\delimit.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\drop.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\drop_exactly.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\drop_last.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\drop_while.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\empty.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\enumerate.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\exclusive_scan.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\facade.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\filter.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\for_each.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\generate.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\generate_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\getlines.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\group_by.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\indices.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\indirect.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\interface.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\intersperse.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\iota.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\istream.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\join.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\linear_distribute.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\map.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\move.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\partial_sum.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\ref.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\remove.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\remove_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\repeat.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\repeat_n.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\replace.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\replace_if.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\reverse.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\sample.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\set_algorithm.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\single.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\slice.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\sliding.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\span.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\split.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\split_when.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\stride.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\subrange.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\tail.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\take.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\take_exactly.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\take_last.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\take_while.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\tokenize.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\transform.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\trim.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\unbounded.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\unique.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\view.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\zip.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view\zip_with.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view_adaptor.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view_facade.hpp" />
+    <ClInclude Include="hexdump\include\range\v3\view_interface.hpp" />
+    <ClInclude Include="hexdump\include\std\detail\associated_types.hpp" />
+    <ClInclude Include="inline\foo.h" />
+    <ClInclude Include="list\List.hpp" />
+    <ClInclude Include="macrofunctest\GLFW\glfw3.h" />
+    <ClInclude Include="macrofunctest\GLFW\glfw3native.h" />
+    <ClInclude Include="macrofunctest\print.h" />
+    <ClInclude Include="macrofunctest\src\cocoa_joystick.h" />
+    <ClInclude Include="macrofunctest\src\cocoa_platform.h" />
+    <ClInclude Include="macrofunctest\src\cocoa_time.h" />
+    <ClInclude Include="macrofunctest\src\internal.h" />
+    <ClInclude Include="macrofunctest\src\linux_joystick.h" />
+    <ClInclude Include="macrofunctest\src\mappings.h" />
+    <ClInclude Include="macrofunctest\src\null_joystick.h" />
+    <ClInclude Include="macrofunctest\src\null_platform.h" />
+    <ClInclude Include="macrofunctest\src\platform.h" />
+    <ClInclude Include="macrofunctest\src\posix_poll.h" />
+    <ClInclude Include="macrofunctest\src\posix_thread.h" />
+    <ClInclude Include="macrofunctest\src\posix_time.h" />
+    <ClInclude Include="macrofunctest\src\win32_joystick.h" />
+    <ClInclude Include="macrofunctest\src\win32_platform.h" />
+    <ClInclude Include="macrofunctest\src\win32_thread.h" />
+    <ClInclude Include="macrofunctest\src\win32_time.h" />
+    <ClInclude Include="macrofunctest\src\wl_platform.h" />
+    <ClInclude Include="macrofunctest\src\x11_platform.h" />
+    <ClInclude Include="macrofunctest\src\xkb_unicode.h" />
+    <ClInclude Include="mallocvis-main\addr2sym.hpp" />
+    <ClInclude Include="mallocvis-main\alloc_action.hpp" />
+    <ClInclude Include="mallocvis-main\debug.hpp" />
+    <ClInclude Include="mallocvis-main\plot_actions.hpp" />
+    <ClInclude Include="memmodel\debug.hpp" />
+    <ClInclude Include="minilog-master\minilog.h" />
+    <ClInclude Include="move\lifetest.hpp" />
+    <ClInclude Include="move\resource.hpp" />
+    <ClInclude Include="optional\Optional.hpp" />
+    <ClInclude Include="reference\cppdemangle.h" />
+    <ClInclude Include="reference\print.h" />
+    <ClInclude Include="reflect-hpp-master\reflect.hpp" />
+    <ClInclude Include="reflect-hpp-master\reflect_json.hpp" />
+    <ClInclude Include="ScopeProfiler\print.h" />
+    <ClInclude Include="ScopeProfiler\ScopeProfiler.h" />
+    <ClInclude Include="sfinae-example-master\print.h" />
+    <ClInclude Include="thread\debug.hpp" />
+    <ClInclude Include="thread\mtqueue.hpp" />
+    <ClInclude Include="thread\mtverify.hpp" />
+    <ClInclude Include="uniqueptr\UniquePtr.hpp" />
+    <ClInclude Include="vartmplandfold-example-main\print.h" />
+    <ClInclude Include="warnings\C.h" />
+    <ClInclude Include="warnings\func.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="array\test_Array.cpp" />
+    <ClCompile Include="atomic\compare_and_swap.cpp" />
+    <ClCompile Include="atomic\example.cpp" />
+    <ClCompile Include="atomic\fetch_add.cpp" />
+    <ClCompile Include="atomic\fetch_add_release.cpp" />
+    <ClCompile Include="atomic\introduction.cpp" />
+    <ClCompile Include="atomic\list_teardown_pop.cpp" />
+    <ClCompile Include="atomic\list_teardown_pop_wait.cpp" />
+    <ClCompile Include="atomic\list_teardown_size.cpp" />
+    <ClCompile Include="atomic\main.cpp" />
+    <ClCompile Include="atomic\memory_order.cpp" />
+    <ClCompile Include="atomic\protect_other.cpp" />
+    <ClCompile Include="atomic\spin_barrier.cpp" />
+    <ClCompile Include="atomic\spin_mutex.cpp" />
+    <ClCompile Include="atomic\spin_mutex_2.cpp" />
+    <ClCompile Include="atomic\spin_mutex_cpp20_wait.cpp" />
+    <ClCompile Include="babyjson-demo-master\main.cpp" />
+    <ClCompile Include="bind\feat.cpp" />
+    <ClCompile Include="bind\main.cpp" />
+    <ClCompile Include="bind\test.cpp" />
+    <ClCompile Include="co_http-master\chat_server.cpp" />
+    <ClCompile Include="co_http-master\sample_client.cpp" />
+    <ClCompile Include="co_http-master\sample_server.cpp" />
+    <ClCompile Include="co_http-master\test.cpp" />
+    <ClCompile Include="co_http-master\test_server.cpp" />
+    <ClCompile Include="cpp17pmrtest\filter.cpp" />
+    <ClCompile Include="cpp17pmrtest\main.cpp" />
+    <ClCompile Include="cpp17pmrtest\oldmain.cpp" />
+    <ClCompile Include="cpplifetimetest\main.cpp" />
+    <ClCompile Include="cppmtqueuetest\main.cpp" />
+    <ClCompile Include="cpprandomtest\main.cpp" />
+    <ClCompile Include="cpptemplateinstantiate\main.cpp" />
+    <ClCompile Include="cpptemplateinstantiate\other.cpp" />
+    <ClCompile Include="enumreflecttest\testscienum.cpp" />
+    <ClCompile Include="erasure\main.cpp" />
+    <ClCompile Include="erasure\msg_virtualize.cpp" />
+    <ClCompile Include="function\main.cpp" />
+    <ClCompile Include="getset\builder.cpp" />
+    <ClCompile Include="getset\manyparams.cpp" />
+    <ClCompile Include="getset\multiarg.cpp" />
+    <ClCompile Include="getset\point.cpp" />
+    <ClCompile Include="getset\stdvector.cpp" />
+    <ClCompile Include="getset\vector.cpp" />
+    <ClCompile Include="hexdump\hexdump.cpp" />
+    <ClCompile Include="inline\foo.cpp" />
+    <ClCompile Include="inline\test_inline.cpp" />
+    <ClCompile Include="iostream\cppstream.cpp" />
+    <ClCompile Include="iostream\cstdio.cpp" />
+    <ClCompile Include="iostream\main.cpp" />
+    <ClCompile Include="iostream\ostream.cpp" />
+    <ClCompile Include="iostream\stdin.cpp" />
+    <ClCompile Include="list\test_List.cpp" />
+    <ClCompile Include="loserhomework\1.cpp" />
+    <ClCompile Include="loserhomework\2.cpp" />
+    <ClCompile Include="loserhomework\3.cpp" />
+    <ClCompile Include="loserhomework\4.cpp" />
+    <ClCompile Include="loserhomework\5.cpp" />
+    <ClCompile Include="loserhomework\6.cpp" />
+    <ClCompile Include="loserhomework\7.cpp" />
+    <ClCompile Include="loserhomework\8.cpp" />
+    <ClCompile Include="loserhomework\main.cpp" />
+    <ClCompile Include="macrofunctest\main.cpp" />
+    <ClCompile Include="macrofunctest\src\cocoa_time.c" />
+    <ClCompile Include="macrofunctest\src\context.c" />
+    <ClCompile Include="macrofunctest\src\egl_context.c" />
+    <ClCompile Include="macrofunctest\src\glx_context.c" />
+    <ClCompile Include="macrofunctest\src\init.c" />
+    <ClCompile Include="macrofunctest\src\input.c" />
+    <ClCompile Include="macrofunctest\src\linux_joystick.c" />
+    <ClCompile Include="macrofunctest\src\monitor.c" />
+    <ClCompile Include="macrofunctest\src\null_init.c" />
+    <ClCompile Include="macrofunctest\src\null_joystick.c" />
+    <ClCompile Include="macrofunctest\src\null_monitor.c" />
+    <ClCompile Include="macrofunctest\src\null_window.c" />
+    <ClCompile Include="macrofunctest\src\osmesa_context.c" />
+    <ClCompile Include="macrofunctest\src\platform.c" />
+    <ClCompile Include="macrofunctest\src\posix_module.c" />
+    <ClCompile Include="macrofunctest\src\posix_poll.c" />
+    <ClCompile Include="macrofunctest\src\posix_thread.c" />
+    <ClCompile Include="macrofunctest\src\posix_time.c" />
+    <ClCompile Include="macrofunctest\src\vulkan.c" />
+    <ClCompile Include="macrofunctest\src\wgl_context.c" />
+    <ClCompile Include="macrofunctest\src\win32_init.c" />
+    <ClCompile Include="macrofunctest\src\win32_joystick.c" />
+    <ClCompile Include="macrofunctest\src\win32_module.c" />
+    <ClCompile Include="macrofunctest\src\win32_monitor.c" />
+    <ClCompile Include="macrofunctest\src\win32_thread.c" />
+    <ClCompile Include="macrofunctest\src\win32_time.c" />
+    <ClCompile Include="macrofunctest\src\win32_window.c" />
+    <ClCompile Include="macrofunctest\src\window.c" />
+    <ClCompile Include="macrofunctest\src\wl_init.c" />
+    <ClCompile Include="macrofunctest\src\wl_monitor.c" />
+    <ClCompile Include="macrofunctest\src\wl_window.c" />
+    <ClCompile Include="macrofunctest\src\x11_init.c" />
+    <ClCompile Include="macrofunctest\src\x11_monitor.c" />
+    <ClCompile Include="macrofunctest\src\x11_window.c" />
+    <ClCompile Include="macrofunctest\src\xkb_unicode.c" />
+    <ClCompile Include="mallocvis-main\check.cpp" />
+    <ClCompile Include="mallocvis-main\dbg_help.cpp" />
+    <ClCompile Include="mallocvis-main\example.cpp" />
+    <ClCompile Include="mallocvis-main\malloc_hook.cpp" />
+    <ClCompile Include="mallocvis-main\memoryleak.cpp" />
+    <ClCompile Include="mallocvis-main\mt_example.cpp" />
+    <ClCompile Include="mallocvis-main\neoalloc\BM_mt.cpp" />
+    <ClCompile Include="mallocvis-main\neoalloc\BM_pmr.cpp" />
+    <ClCompile Include="mallocvis-main\neoalloc\main.cpp" />
+    <ClCompile Include="mallocvis-main\neoalloc\neoalloc.cpp" />
+    <ClCompile Include="mallocvis-main\plot_actions.cpp" />
+    <ClCompile Include="mallocvis-main\vdb_example.cpp" />
+    <ClCompile Include="mallocvis-main\visualize.cpp" />
+    <ClCompile Include="memmodel\diss1.cpp" />
+    <ClCompile Include="memmodel\diss2.cpp" />
+    <ClCompile Include="memmodel\diss3.cpp" />
+    <ClCompile Include="memmodel\diss4.cpp" />
+    <ClCompile Include="memmodel\diss5.cpp" />
+    <ClCompile Include="memmodel\diss6.cpp" />
+    <ClCompile Include="memmodel\diss7.cpp" />
+    <ClCompile Include="memmodel\main.cpp" />
+    <ClCompile Include="minilog-master\main.cpp" />
+    <ClCompile Include="move\conclude.cpp" />
+    <ClCompile Include="move\main.cpp" />
+    <ClCompile Include="move\main_finally.cpp" />
+    <ClCompile Include="move\main_manualres.cpp" />
+    <ClCompile Include="move\main_resource.cpp" />
+    <ClCompile Include="move\main_respimpl.cpp" />
+    <ClCompile Include="move\resource.cpp" />
+    <ClCompile Include="optional\test_Optional.cpp" />
+    <ClCompile Include="reference\main.cpp" />
+    <ClCompile Include="reflect-hpp-master\example_complex.cpp" />
+    <ClCompile Include="reflect-hpp-master\example_jsoncpp.cpp" />
+    <ClCompile Include="reflect-hpp-master\example_pybind.cpp" />
+    <ClCompile Include="reflect-hpp-master\test.cpp" />
+    <ClCompile Include="ScopeProfiler\fake.cpp" />
+    <ClCompile Include="ScopeProfiler\main.cpp" />
+    <ClCompile Include="sfinae-example-master\main.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="thread\exam_counter.cpp" />
+    <ClCompile Include="thread\exam_message_sync.cpp" />
+    <ClCompile Include="thread\exam_msg_final_sync.cpp" />
+    <ClCompile Include="thread\exam_mt_queue.cpp" />
+    <ClCompile Include="thread\exam_mt_queue_limit.cpp" />
+    <ClCompile Include="thread\exam_mt_queue_timed.cpp" />
+    <ClCompile Include="thread\exam_mutex.cpp" />
+    <ClCompile Include="thread\exam_snake_getchar.cpp" />
+    <ClCompile Include="thread\main.cpp" />
+    <ClCompile Include="thread\memorder.cpp" />
+    <ClCompile Include="undef\classic_repro_clang.cpp" />
+    <ClCompile Include="undef\main.cpp" />
+    <ClCompile Include="uniqueptr\test_UniquePtr.cpp" />
+    <ClCompile Include="vartmplandfold-example-main\main.cpp" />
+    <ClCompile Include="warnings\func.cpp" />
+    <ClCompile Include="warnings\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="co_http-master\static\index.html" />
+    <None Include="erasure\msgtypes.inl" />
+    <None Include="optional\readme.md" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

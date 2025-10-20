@@ -1,0 +1,13 @@
+2024-07-22 15:44:19.1154929 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:17 [trace] This is a trace message.
+2024-07-22 15:44:19.1163498 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:18 [info] hello, the answer is 42
+2024-07-22 15:44:19.1168971 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:19 [critical] this is right-aligned [   +3.1400]
+2024-07-22 15:44:19.1171977 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:21 [warn] good job, archi for making minilog
+2024-07-22 15:44:19.1174923 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:25 [debug] my_variable=42
+2024-07-22 15:44:19.1177639 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:27 [trace] below is the color show :)
+2024-07-22 15:44:19.1180206 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:29 [trace] trace
+2024-07-22 15:44:19.1182658 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:29 [debug] debug
+2024-07-22 15:44:19.1185312 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:29 [info] info
+2024-07-22 15:44:19.1187930 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:29 [critical] critical
+2024-07-22 15:44:19.1190653 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:29 [warn] warn
+2024-07-22 15:44:19.1194146 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:29 [error] error
+2024-07-22 15:44:19.1196967 GMT+8 D:\dev\Courses\Test\minilog-master\main.cpp:29 [fatal] fatal
