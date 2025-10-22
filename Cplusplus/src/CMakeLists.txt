@@ -8,16 +8,48 @@ set(PROJECT_SOURCES
 
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
 
+find_package(TBB REQUIRED HINTS ${VCPKG_CMAKE_SHARED_PATH})
+
 target_include_directories(${PROJECT_NAME} PRIVATE 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${BOOST_INCLUDE_PATH}>
     $<BUILD_INTERFACE:${VCPKG_INCLUDE_PATH}>
 )
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    ${BOOST_LIBRARY_PATH}
-    ${VCPKG_LIBRARY_PATH}
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    TBB::tbb
 )
 
+if(WIN32)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    file(GLOB TBB_DLLS 
+        "${VCPKG_BIN_PATH}/tbb12.dll"
+    )
+     
+    # 设置调试环境PATH
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VS_DEBUGGER_ENVIRONMENT "PATH=${VCPKG_BIN_PATH};$ENV{PATH}"
+    )
+else()
+    file(GLOB TBB_DLLS 
+        "${VCPKG_BIN_PATH}/../debug/bin/tbb12_debug.dll"
+    )
+    # 设置调试环境PATH
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VS_DEBUGGER_ENVIRONMENT "PATH=${VCPKG_BIN_PATH}/../debug/bin;$ENV{PATH}"
+    )
+endif()
+    foreach(DLL ${TBB_DLLS})
+        if(EXISTS ${DLL})
+            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${DLL}"
+                    $<TARGET_FILE_DIR:${PROJECT_NAME}>
+                COMMENT "Copying ${DLL} to output directory"
+            )
+        endif()
+    endforeach()
+   
+endif()
 if (MSVC)
 # char / signed char / unsigned char 都是独立类型，可以使用以下方式指定编译器char是signed char还是unsigned char
 # -funsigned-char

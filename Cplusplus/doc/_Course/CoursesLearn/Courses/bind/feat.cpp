@@ -1,4 +1,4 @@
-static constexpr struct change_these_options_to_select_what_will_be_printed
+﻿static constexpr struct change_these_options_to_select_what_will_be_printed
 {
     constexpr static int longest_macro_name { 45 };
     constexpr static bool titles               = 1;
@@ -41,6 +41,7 @@ static constexpr struct change_these_options_to_select_what_will_be_printed
 #endif
  
 // Expect a string that starts with 6-decimal-digits or with '_' (if unsupported)
+// 202002L -> 202002
 #define COMPILER_VALUE_INT(n) #n [0] == '_' ? 0 : \
     (#n[5] - '0') + (#n[4] - '0') * 10 + (#n[3] - '0') * 100 + \
     (#n[2] - '0') * 1000 + (#n[1] - '0') * 10000 + (#n[0] - '0') * 100000

@@ -55,3 +55,21 @@ optional 自己动手实现std::optional容器 https://www.bilibili.com/video/BV
 atomic 内存序究竟是什么，彻底参悟C++内存模型（附多线程安全测试通用框架） https://www.bilibili.com/video/BV1Qy411q7Xq/
 
 mallocvis-main malloc/new追踪，可视化内存碎片，监测内存泄漏 https://www.bilibili.com/video/BV1if421B7Jo/
+
+
+
+bind 函数式编程优雅实现信号槽 https://www.bilibili.com/video/BV1nf421B7Wk/
+
+array 自己动手做标准库：实现array容器
+
+
+
+
+
+并行编程，transform, reduce, scan是什么意思？理解常用并行算法及其实现原理，TBB并行之旅
+
+cpp17pmrtest
+
+mallocvis-main\neoalloc
+
+https://www.bilibili.com/video/BV1gu411m7kN
