@@ -5,11 +5,13 @@
 #include <execution>
 #include <type_traits>
 #include <limits>
+#include <set>
+
 #include <tbb/parallel_invoke.h>
 #include <tbb/parallel_sort.h>
 
 #include "utils/ticktock.h"
-#include "utils/generator.h"
+#include "utils/generator.hpp"
 
 // i5-10200H CPU @ 2.40GHz
 // VS2022 MSVC C++23
@@ -118,6 +120,7 @@ static auto benchmark_sort() -> void
     auto arr2 = arr;
     auto arr3 = arr;
     auto arr4 = arr;
+    auto arr5 = arr;
     TICK(quick_sort)
     quick_sort(sequential_tag{}, arr.data(), arr.size(), std::less<int32_t>{});
     TOCK(quick_sort)
@@ -135,4 +138,8 @@ static auto benchmark_sort() -> void
     tbb::parallel_sort(arr4.begin(), arr4.end());
     TOCK(tbb_parallel_sort)
 
+    TICK(multiset_sort)
+    std::multiset<int32_t> set(arr5.begin(), arr5.end());
+    std::move(set.begin(), set.end(), arr5.data());
+    TOCK(multiset_sort)
 }

@@ -1,1 +1,0 @@
-void fake(int i) {}
