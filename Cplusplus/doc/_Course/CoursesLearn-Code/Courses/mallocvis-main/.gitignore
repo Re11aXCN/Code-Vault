@@ -1,0 +1,5 @@
+build/
+malloc.html
+malloc.obj
+.vs/
+.cache/
