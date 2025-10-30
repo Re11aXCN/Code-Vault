@@ -19,6 +19,8 @@
 #include "parallel/filter_sin_greater_than_0.h"
 #include "sort/benchmark_sort.hpp"
 #include "parallel/avx_filter.hpp"
+#include "leetcode/0048_rotate_image.h"
+#include "leetcode/0912_sort_array.h"
 using std::string;
 using std::vector;
 using std::queue;
@@ -29,5 +31,37 @@ int main() {
     //filter_sin_greater_than_zero();
     //benchmark_sort();
     //avx_test();
+
+    //// 测试不同大小的矩阵
+    //std::vector<std::vector<int>> testMatrix = {
+    //    {1, 2, 3},
+    //    {4, 5, 6},
+    //    {7, 8, 9}
+    //};
+
+    //std::cout << "原始矩阵 (3x3 奇数):\n";
+    //for (const auto& row : testMatrix) {
+    //    for (int val : row) {
+    //        std::cout << val << " ";
+    //    }
+    //    std::cout << "\n";
+    //}
+
+    //auto rotated = testMatrix;
+    //rotateMatrixDirect(rotated);
+
+    //std::cout << "\n旋转后矩阵:\n";
+    //for (const auto& row : rotated) {
+    //    for (int val : row) {
+    //        std::cout << val << " ";
+    //    }
+    //    std::cout << "\n";
+    //}
+
+    //// 运行性能测试
+    //MatrixRotateBenchmark benchmark;
+    //benchmark.runBenchmark();
+    
+    QuickSortBenchmark::run_benchmark<int>(100000);
     return 0;
 }
