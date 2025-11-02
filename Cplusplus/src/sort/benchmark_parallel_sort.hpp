@@ -6,7 +6,9 @@
 #include <type_traits>
 #include <limits>
 #include <set>
-
+#include <iostream>
+#include <vector>
+#include <functional>
 #include <tbb/parallel_invoke.h>
 #include <tbb/parallel_sort.h>
 
@@ -106,11 +108,44 @@ auto insertion_sort(_Ty* data, std::size_t size) -> void
 {
     for (std::size_t i = 1; i < size; ++i) {
         _Ty temp = data[i];
-        std::size_t j;
+        std::size_t j = i - 1;
         for (j = i; j > 0 && data[j - 1] > temp; --j) {
             data[j] = data[j - 1];
         }
         data[j] = temp;
+    }
+}
+
+// 简化的插入排序
+template<typename Iterator, typename Compare>
+void insertion_sort(Iterator first, Iterator last, Compare comp) {
+    if (first == last) return;
+    /*
+    1 5 4 2 3
+        1 -
+        1 5
+        1 - 5
+        1 4 5 -
+        1 4 - 5
+        1 - 4 5
+        1 2 4 5 -
+        1 2 4 - 5
+        1 2 - 4 5
+        1 2 3 4 5 
+    */
+    for (auto current = std::next(first); current != last; ++current) {
+        auto key = std::move(*current);  // 保存当前元素
+        auto hole = current;             // 空位位置
+
+        // 向前比较并移动元素
+        auto prev = hole;
+        while (prev != first && comp(key, *std::prev(prev))) {
+            --prev;
+            *hole = std::move(*prev);  // 大元素后移
+            hole = prev;
+        }
+
+        *hole = std::move(key);  // 插入到正确位置
     }
 }
 
@@ -143,3 +178,419 @@ static auto benchmark_sort() -> void
     std::move(set.begin(), set.end(), arr5.data());
     TOCK(multiset_sort)
 }
+
+// 版本1: 不展开
+template<typename BiIter, typename Compare>
+void insert_sort_no_unroll(BiIter start, BiIter end, Compare comp)
+{
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本2: 外部展开4，内部展开16
+template<typename BiIter, typename Compare>
+void insert_sort_4_16(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 4
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 16
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本3: 外部展开4，内部展开8
+template<typename BiIter, typename Compare>
+void insert_sort_4_8(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 4
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 8
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本4: 外部展开4，内部展开4
+template<typename BiIter, typename Compare>
+void insert_sort_4_4(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 4
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 4
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本5: 外部展开8，内部展开16
+template<typename BiIter, typename Compare>
+void insert_sort_8_16(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 8
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 16
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本6: 外部展开8，内部展开8
+template<typename BiIter, typename Compare>
+void insert_sort_8_8(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 8
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 8
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本7: 外部展开8，内部展开4
+template<typename BiIter, typename Compare>
+void insert_sort_8_4(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 8
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 4
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本8: 外部展开16，内部展开16
+template<typename BiIter, typename Compare>
+void insert_sort_16_16(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 16
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 16
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本9: 外部展开16，内部展开8
+template<typename BiIter, typename Compare>
+void insert_sort_16_8(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 16
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 8
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本10: 外部展开16，内部展开4
+template<typename BiIter, typename Compare>
+void insert_sort_16_4(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 16
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+#pragma GCC unroll 4
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本11: 外部展开16，内部展开0
+template<typename BiIter, typename Compare>
+void insert_sort_16_0(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 16
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本10: 外部展开8，内部展开0
+template<typename BiIter, typename Compare>
+void insert_sort_8_0(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 8
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 版本10: 外部展开4，内部展开0
+template<typename BiIter, typename Compare>
+void insert_sort_4_0(BiIter start, BiIter end, Compare comp)
+{
+#pragma GCC unroll 4
+    for (auto current = std::next(start); current != end; ++current)
+    {
+        auto value = std::move(*current);
+        auto hole = current;
+        auto prev = hole;
+
+        while (prev != start && comp(value, *std::prev(prev)))
+        {
+            --prev;
+            *hole = std::move(*prev);
+            hole = prev;
+        }
+        *hole = std::move(value);
+    }
+}
+
+// 快速排序模板，接受插入排序函数作为参数
+template<typename InsertSortFunc, typename RanIter, typename Compare>
+void hoare_quick_sort_with_insert(RanIter start, RanIter end, Compare comp, InsertSortFunc insert_sort_func)
+{
+    const auto size = std::distance(start, end);
+    if (size <= 32) {
+        insert_sort_func(start, end, comp);
+        return;
+    }
+
+    // 三数取中法选择枢轴
+    auto left = start, right = std::prev(end);
+    auto mid = start + ((right - left) >> 1);
+
+    if (comp(*mid, *left)) std::iter_swap(mid, left);
+    if (comp(*right, *left)) std::iter_swap(right, left);
+    if (comp(*right, *mid)) std::iter_swap(right, mid);
+
+    auto pivot_val = *mid;
+    auto pivot_pos = std::prev(right);
+    std::iter_swap(mid, pivot_pos);
+
+    auto i = left, j = pivot_pos;
+    while (true) {
+        do { ++i; } while (i < right && comp(*i, pivot_val));
+        do { --j; } while (j > left && comp(pivot_val, *j));
+        if (i >= j) break;
+        std::iter_swap(i, j);
+    }
+
+    std::iter_swap(i, pivot_pos);
+
+    if (std::distance(left, i) < std::distance(i, right)) {
+        hoare_quick_sort_with_insert(left, i, comp, insert_sort_func);
+        hoare_quick_sort_with_insert(std::next(i), end, comp, insert_sort_func);
+    }
+    else {
+        hoare_quick_sort_with_insert(std::next(i), end, comp, insert_sort_func);
+        hoare_quick_sort_with_insert(left, i, comp, insert_sort_func);
+    }
+}
+
+// 测试函数
+template<typename InsertSortFunc>
+void test_performance(const std::string& version_name, InsertSortFunc insert_sort_func,
+    const std::vector<int>& data, const std::string& data_type)
+{
+    auto data_copy = data;
+    auto start = std::chrono::high_resolution_clock::now();
+
+    hoare_quick_sort_with_insert(data_copy.begin(), data_copy.end(), std::less<int>{}, insert_sort_func);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    // 验证排序正确性
+    bool is_sorted = std::is_sorted(data_copy.begin(), data_copy.end());
+    if (!is_sorted) {
+        std::cout << "ERROR: " << version_name << " failed to sort " << data_type << " data!" << std::endl;
+        return;
+    }
+
+    std::cout << version_name << " - " << data_type << ": " << duration.count() << " μs" << std::endl;
+}
+/*
+int main()
+{
+    const int N = 16384; // 2^14
+
+    // 生成测试数据
+    std::vector<int> ascending(N);
+    std::iota(ascending.begin(), ascending.end(), 1);
+
+    std::vector<int> descending(N);
+    std::iota(descending.rbegin(), descending.rend(), 1);
+
+    std::vector<int> mostly_ascending(N);
+    std::iota(mostly_ascending.begin(), mostly_ascending.end(), 1);
+    // 添加一些随机扰动
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (int i = 0; i < N / 10; ++i) {
+        int idx1 = gen() % N;
+        int idx2 = gen() % N;
+        std::swap(mostly_ascending[idx1], mostly_ascending[idx2]);
+    }
+
+    std::vector<int> mostly_descending(N);
+    std::iota(mostly_descending.rbegin(), mostly_descending.rend(), 1);
+    for (int i = 0; i < N / 10; ++i) {
+        int idx1 = gen() % N;
+        int idx2 = gen() % N;
+        std::swap(mostly_descending[idx1], mostly_descending[idx2]);
+    }
+
+    std::vector<int> random_data(N);
+    std::iota(random_data.begin(), random_data.end(), 1);
+    std::shuffle(random_data.begin(), random_data.end(), gen);
+
+    // 测试所有版本
+    std::vector<std::pair<std::string, std::function<void(std::vector<int>::iterator, std::vector<int>::iterator, std::less<int>)>>> versions = {
+        {"no_unroll", insert_sort_no_unroll<std::vector<int>::iterator, std::less<int>>},
+        {"4_16", insert_sort_4_16<std::vector<int>::iterator, std::less<int>>},
+        {"4_8", insert_sort_4_8<std::vector<int>::iterator, std::less<int>>},
+        {"4_4", insert_sort_4_4<std::vector<int>::iterator, std::less<int>>},
+        {"8_16", insert_sort_8_16<std::vector<int>::iterator, std::less<int>>},
+        {"8_8", insert_sort_8_8<std::vector<int>::iterator, std::less<int>>},
+        {"8_4", insert_sort_8_4<std::vector<int>::iterator, std::less<int>>},
+        {"16_16", insert_sort_16_16<std::vector<int>::iterator, std::less<int>>},
+        {"16_8", insert_sort_16_8<std::vector<int>::iterator, std::less<int>>},
+        {"16_4", insert_sort_16_4<std::vector<int>::iterator, std::less<int>>},
+        {"16_0", insert_sort_16_0<std::vector<int>::iterator, std::less<int>>},
+        {"8_0", insert_sort_8_0<std::vector<int>::iterator, std::less<int>>},
+        {"4_0", insert_sort_4_0<std::vector<int>::iterator, std::less<int>>},
+    };
+
+    std::vector<std::pair<std::string, std::vector<int>>> test_cases = {
+        {"ascending", ascending},
+        {"descending", descending},
+        {"mostly_ascending", mostly_ascending},
+        {"mostly_descending", mostly_descending},
+        {"random", random_data}
+    };
+
+    // 运行测试
+    for (const auto& test_case : test_cases) {
+        std::cout << "\n=== Testing " << test_case.first << " data ===" << std::endl;
+        for (const auto& version : versions) {
+            test_performance(version.first, version.second, test_case.second, test_case.first);
+        }
+    }
+
+    return 0;
+}
+*/

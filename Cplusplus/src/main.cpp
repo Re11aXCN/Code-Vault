@@ -17,7 +17,8 @@
 #include <immintrin.h>
 
 #include "parallel/filter_sin_greater_than_0.h"
-#include "sort/benchmark_sort.hpp"
+#include "sort/benchmark_parallel_sort.hpp"
+#include "sort/radix_sort.hpp"
 #include "parallel/avx_filter.hpp"
 #include "leetcode/0048_rotate_image.h"
 #include "leetcode/0912_sort_array.h"
@@ -61,7 +62,8 @@ int main() {
     //// 运行性能测试
     //MatrixRotateBenchmark benchmark;
     //benchmark.runBenchmark();
-    
-    QuickSortBenchmark::run_benchmark<int>(100000);
+
+    //QuickSortBenchmark::run_benchmark<int>(100000);
+    radix_sort_test();
     return 0;
 }

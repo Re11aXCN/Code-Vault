@@ -336,7 +336,7 @@ void hoare_quick_sort(T* data, int left, int right, Compare comp) {
         return;
     }
 
-    // 三数取中法选择枢轴
+    // 三数取中法选择枢轴, 确保 left ≤ mid ≤ right, 防止有序情况分布不均匀
     int mid = left + (right - left) / 2;
     if (comp(data[mid] , data[left])) std::swap(data[left], data[mid]);
     if (comp(data[right] , data[left])) std::swap(data[left], data[right]);
@@ -951,4 +951,82 @@ TimSort::sort(data, n);
 - 未知数据：PDQSort或std::sort提供良好保障
 - 内存敏感：选择迭代快排变体
 
+*/
+
+/* 
+* 详细展开多少次，性能对比请查看 ../sort/benchmark_parallel_sort.hpp
+* 测试使用 GCC 15.2.0  -std=c++20 -O3
+class Solution {
+private:
+    template<typename BiIter, typename Compare>
+    void insert_sort(BiIter start, BiIter end, Compare comp)
+    {
+#pragma GCC unroll 8
+        for (auto current = std::next(start); current != end; ++current)
+        {
+            auto value = std::move(*current);
+            auto hole = current;
+
+            auto prev = hole;
+
+            while (prev != start && comp(value, *std::prev(prev)))
+            {
+                --prev;
+                *hole = std::move(*prev);
+                hole = prev;
+            }
+            *hole = std::move(value);
+        }
+    }
+
+    template<typename RanIter, typename Compare>
+    void hoare_quick_sort(RanIter start, RanIter end, Compare comp)
+    {
+        const auto size = std::distance(start, end);
+        if (size <= 32) {
+            insert_sort(start, end, comp);
+            return;
+        }
+
+        // 三数取中法选择枢轴, 确保 left ≤ mid ≤ right, 防止有序情况分布不均匀
+        auto left = start, right = std::prev(end);
+        auto mid = start + ((right - left) >> 1);
+
+        if (comp(*mid, *left)) std::iter_swap(mid, left);
+        if (comp(*right, *left)) std::iter_swap(right, left);
+        if (comp(*right, *mid)) std::iter_swap(right, mid);
+
+        auto pivot_val = *mid;
+        // 优化分区循环的边界检查，如果不移动枢轴 需要额外处理枢轴位置 要跳过枢轴本身
+        auto pivot_pos = std::prev(right); // 倒数第二个位置
+        std::iter_swap(mid, pivot_pos); // 将枢轴放到倒数第二个位置
+
+        // left(i) ≤ pivot_pos(j) ≤ right, 已有序情况下，我们从i的next，j的prev开始
+        auto i = left, j = pivot_pos;
+        while (true) {
+            do { ++i; } while (i < right && comp(*i, pivot_val)); // 找比枢轴大
+            do { --j; } while (j > left && comp(pivot_val, *j)); // 找比枢轴小
+            if (i >= j) break;
+            std::iter_swap(i, j);
+        }
+
+        // 将枢轴放到正确位置
+        std::iter_swap(i, pivot_pos); // 此时i的值是枢轴值
+
+        // 尾递归优化：先处理较小的子数组，减少递归深度，防止栈溢出
+        if (std::distance(left, i) < std::distance(i, right)) {
+            hoare_quick_sort(left, i, comp);
+            hoare_quick_sort(std::next(i), end, comp); // 注意end是开区间
+        }
+        else {
+            hoare_quick_sort(std::next(i), end, comp);
+            hoare_quick_sort(left, i, comp);
+        }
+    }
+public:
+    std::vector<int> sortArray(std::vector<int>& nums) {
+        hoare_quick_sort(nums.begin(), nums.end(), std::less<>{});
+        return nums;
+    }
+};
 */
