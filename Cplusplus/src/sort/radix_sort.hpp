@@ -12,16 +12,16 @@
 
 // 迭代器解包工具函数
 template<typename Iterator>
-auto unwrap_iterator(Iterator first, Iterator last) {
+auto unwrap_iterator(Iterator first, Iterator last) -> std::pair<typename std::iterator_traits<Iterator>::value_type*, std::size_t> {
     using value_type = typename std::iterator_traits<Iterator>::value_type;
 
     static_assert(std::contiguous_iterator<Iterator>,
         "Radix sort requires contiguous iterators (vector, array, raw pointers)");
 
-    auto* ptr = &*first;  // 关键：通过解引用获取指针
+    value_type* ptr = &*first;  // 关键：通过解引用获取指针
     std::size_t size = std::distance(first, last);
 
-    return std::make_pair(ptr, size);
+    return { ptr, size };
 }
 
 struct sequential_execution_policy {};
