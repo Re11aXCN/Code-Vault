@@ -14,7 +14,14 @@
 #include <type_traits>
 #include <ranges>
 #include <format>
-
+//DAG最简任务工程调度框架，支持并发
+/*
+    DAG支持：完整的有向无环图任务依赖管理
+    并发执行：使用线程池并发执行独立任务
+    依赖检测：自动检测循环依赖
+    任务状态跟踪：实时跟踪每个任务的状态
+    异常处理：完善的异常处理和错误报告
+*/
 namespace dag_scheduler {
 
     // 概念定义

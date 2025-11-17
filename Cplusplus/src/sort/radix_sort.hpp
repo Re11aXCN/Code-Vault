@@ -90,15 +90,25 @@ void radix_sort_impl(sequential_execution_policy&&, RanIter first, RanIter last,
     constexpr std::uint16_t _Mask = _Bucket_size - 1; // 0xFF for 8-bit, 0xFFFF for 16-bit, etc.
     constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
 
-    std::array<std::size_t, _Bucket_size> _Bucket_count{};
-    std::array<std::size_t, _Bucket_size> _Scanned{};
+    /*static */std::array<std::size_t, _Bucket_size> _Bucket_count{};
+    /*static */std::array<std::size_t, _Bucket_size> _Scanned{};
 
     std::vector<ValueType> _Buffer(_Size);
+#if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
+    ValueType* __restrict _Start = _Ptr;
+    ValueType* __restrict _End = _Buffer.data();
+#else
     ValueType* _Start = _Ptr;
     ValueType* _End = _Buffer.data();
-
+#endif
     for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
         std::fill(_Bucket_count.begin(), _Bucket_count.end(), 0);
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
         // Count the number of elements per bucket
         for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
             _Unsigned_t _Unsigned_value;
@@ -125,13 +135,29 @@ void radix_sort_impl(sequential_execution_policy&&, RanIter first, RanIter last,
 
             ++_Bucket_count[_Byte_idx];
         }
-        // Calculate the sum of prefixes by exclusive scan
+#if __cplusplus < 201703L
         _Scanned[0] = 0;
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+        // Calculate the sum of prefixes by exclusive scan
         for (std::uint32_t _Idx = 1; _Idx < _Bucket_size; ++_Idx) {
             std::uint32_t _Prev_idx = _Idx - 1;
             _Scanned[_Idx] = _Scanned[_Prev_idx] + _Bucket_count[_Prev_idx];
         }
-
+#else
+        std::exclusive_scan(_Bucket_count.begin(), _Bucket_count.end(),
+            _Scanned.begin(), 0, std::plus<>{});
+#endif
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
         // Move elements to their final positions
         for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
             auto _Value = _Start[_Idx];
@@ -218,9 +244,13 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
     std::array<std::size_t, _Bucket_size> _Global_prefix{};
 
     std::vector<ValueType> _Buffer(_Size);
+#if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
+    ValueType* __restrict _Start = _Ptr;
+    ValueType* __restrict _End = _Buffer.data();
+#else
     ValueType* _Start = _Ptr;
     ValueType* _End = _Buffer.data();
-
+#endif
     for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
         // Phase 1: 并行计数阶段
         {
@@ -275,6 +305,12 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
             std::fill(_Global_prefix.begin(), _Global_prefix.end(), 0);
 
             // 优化：外层循环遍历桶，内层循环遍历线程，提高缓存局部性
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
             for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
                 std::size_t _Bucket_total = 0;
                 for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
@@ -285,6 +321,12 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
 
             // 步骤2.2: 计算全局前缀和
             std::size_t _Running_sum = 0;
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
             for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
                 std::size_t _Current_count = _Global_prefix[_Bucket];
                 _Global_prefix[_Bucket] = _Running_sum;
@@ -295,7 +337,12 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
             for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
                 std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
                 std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread);
-
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
                 for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
                     _Local_offsets[_Bucket] = _Global_prefix[_Bucket];
                     _Global_prefix[_Bucket] += _Local_buckets[_Bucket];
