@@ -27,9 +27,60 @@ using std::string;
 using std::vector;
 using std::queue;
 using namespace std::literals;
+template<typename Ty>
+struct Matrix2D {
+    static_assert(std::is_integral_v<Ty>&& std::is_unsigned_v<Ty>, "Ty must be an unsigned integral type.");
 
+    std::array<Ty, 4> data;
+    constexpr Matrix2D() : data{} {}
+    constexpr Matrix2D(Ty a, Ty b, Ty c, Ty d)
+        : data{ a, b, c, d } {
+    }
+    ~Matrix2D() = default;
+
+    constexpr Matrix2D(const Matrix2D& other) = default;
+    constexpr Matrix2D(Matrix2D&& other) noexcept = default;
+    constexpr Matrix2D& operator=(const Matrix2D& other) = default;
+    constexpr Matrix2D& operator=(Matrix2D&& other) noexcept = default;
+
+    constexpr Matrix2D& operator*=(const Matrix2D& other) noexcept {
+        auto [a, b, c, d] = data;
+        auto [e, f, g, h] = other.data;
+
+        data[0] = a * e + b * g;
+        data[1] = a * f + b * h;
+        data[2] = c * e + d * g;
+        data[3] = c * f + d * h;
+        /*
+        不能这样写，如果是自身赋值，，temp *= temp会导致计算结果错误，因为temp被修改了，也就是other.data被修改了
+        auto [a, b, c, d] = data;
+        data[0] = a * other.data[0] + b * other.data[2];
+        data[1] = a * other.data[1] + b * other.data[3];
+        data[2] = c * other.data[0] + d * other.data[2];
+        data[3] = c * other.data[1] + d * other.data[3];
+        */
+        return *this;
+    }
+
+    static constexpr Matrix2D matrixPower(const Matrix2D& base, Ty exponent) {
+        Matrix2D<Ty> result{ 1, 0, 0, 1 };
+        Matrix2D<Ty> temp = base;
+        Ty n = exponent;
+        while (n > 0) {
+            if (n & 1) result *= temp;
+            temp *= temp;
+            n >>= 1;
+        }
+        return result;
+    }
+};
+constexpr std::size_t fibonacci(std::size_t n) {
+    if (n == 0) return 0;
+    return Matrix2D<std::size_t>::matrixPower(Matrix2D<std::size_t>{1, 1, 1, 0}, n - 1).data[0];
+}
 int main() {
     std::cout.setf(std::ios_base::boolalpha);
+    constexpr auto x = fibonacci(4);
     //filter_sin_greater_than_zero();
     //benchmark_sort();
     //avx_test();

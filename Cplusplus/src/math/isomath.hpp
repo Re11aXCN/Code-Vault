@@ -89,6 +89,14 @@ namespace isomath {
             }
 
             constexpr Matrix2D& operator*=(const Matrix2D& other) {
+                /*
+                不能这样写，如果是自身赋值，，temp *= temp会导致计算结果错误，因为temp被修改了，也就是other.data被修改了
+                auto [a, b, c, d] = data;
+                data[0] = a * other.data[0] + b * other.data[2];
+                data[1] = a * other.data[1] + b * other.data[3];
+                data[2] = c * other.data[0] + d * other.data[2];
+                data[3] = c * other.data[1] + d * other.data[3];
+                */
                 //return *this = *this * other;
                 auto [a, b, c, d] = data;
                 auto [e, f, g, h] = other.data;

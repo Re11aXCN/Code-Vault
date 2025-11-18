@@ -12,8 +12,8 @@
 #include <tbb/parallel_invoke.h>
 #include <tbb/parallel_sort.h>
 
-#include "utils/ticktock.h"
-#include "utils/generator.hpp"
+#include "tools/ticktock.h"
+#include "tools/generator.hpp"
 
 // i5-10200H CPU @ 2.40GHz
 // VS2022 MSVC C++23

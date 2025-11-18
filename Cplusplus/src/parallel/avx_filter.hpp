@@ -8,7 +8,7 @@
 #include <tbb/concurrent_vector.h>
 #include <tbb/enumerable_thread_specific.h>
 #include "no_initialized_pod.h"
-#include "utils/ticktock.h"
+#include "tools/ticktock.h"
 
 namespace avx {
 
