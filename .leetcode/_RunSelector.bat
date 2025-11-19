@@ -1,0 +1,1 @@
+.\_FileRandomSelector.exe --suffix=cpp --filter=[0.review.cpp, 2024.ICPC.Bridging the gap.cpp, 51.n-皇后.cpp] --rand-num=6

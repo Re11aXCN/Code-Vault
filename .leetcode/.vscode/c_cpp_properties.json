@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "D:/Development/Microsoft/VS2022/Enterprise/VC/Tools/MSVC/14.44.35207/include/**",
+                "E:/Development/vcpkg-2025.06.13/installed/x64-windows/include/"
+
+                //"${env:INCLUDE}" // 自动继承系统环境变量中的包含路径（如 Windows SDK）
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                // 添加一个自定义宏表示项目根目录（类似 VS 的 ${ProjectDir}）
+                "PROJECT_DIR=\"${workspaceFolder}\""
+            ],
+            "windowsSdkVersion" : "10.0.22621.0",
+            "compilerPath": "D:/Development/Microsoft/VS2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++23",
+            "intelliSenseMode": "windows-msvc-x64",
+            "configurationProvider": "ms-vscode.makefile-tools"
+        }
+    ],
+    "version": 4
+}
