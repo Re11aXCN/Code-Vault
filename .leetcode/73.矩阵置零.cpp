@@ -1,4 +1,67 @@
-﻿class Solution {
+﻿void setZeroes(vector<vector<int>>& matrix) {
+        bool isFirstRowHasZero = false, isHasZero = false;
+        auto& firstRowVec = matrix[0];
+        int ROWS = matrix.size(), COLS = firstRowVec.size();
+
+        for(int col = 0; col < COLS; ++col) {
+            if (!firstRowVec[col]) {
+                isFirstRowHasZero = true;
+                break;
+            }
+        }
+
+        for (int i = 1; i < ROWS; ++i) {
+            auto& rowVec = matrix[i];
+            for (int j = 0; j < COLS; ++j) {
+                if (rowVec[j] == 0) {
+                    firstRowVec[j] = 0;
+                    isHasZero = true;
+                }
+            }
+            if (isHasZero) {
+                isHasZero = false;
+                std::fill(rowVec.begin(), rowVec.end(), 0);
+            }
+        }
+
+        for (int col = 0; col < COLS; ++col) {
+            if (!firstRowVec[col]) {
+                for (int row = 0; row < ROWS; ++row) {
+                    matrix[row][col] = 0;
+                }
+            }
+        }
+
+        if (isFirstRowHasZero) std::fill(firstRowVec.begin(), firstRowVec.end(), 0);
+    }
+
+void setZeroes(vector<vector<int>>& matrix) {
+        int ROWS = matrix.size(), COLS = matrix[0].size();
+        std::bitset<200> bits;
+        bool isRowHasZero = false;
+        for(int row = 0; row < ROWS; ++row) {
+            #pragma GCC unroll 8
+            for(int col = 0; col < COLS; ++col) {
+                if(matrix[row][col] == 0) {
+                    bits[col] = 1;
+                    isRowHasZero = true;
+                }
+            }
+            if (isRowHasZero) {
+                std::fill(matrix[row].begin(), matrix[row].end(), 0);
+                isRowHasZero = false;
+            }
+        }
+        #pragma GCC unroll 8
+        for(int i = 0; i < 200; ++i) {
+            if(bits[i] == 1) {
+                for(int row = 0; row < ROWS; ++row) {
+                    matrix[row][i] = 0;
+                }
+            }
+        }
+    }
+class Solution {
 public:
     void setZeroes(std::vector<std::vector<int>>& matrix) {
         int rowLength = matrix.size(), colLength = matrix.front().size();

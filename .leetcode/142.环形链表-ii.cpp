@@ -1,3 +1,20 @@
+ListNode *detectCycle(ListNode *head) {
+    ListNode *slow = head, *fast = head;
+
+    while(fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) { slow = head; break; }
+    }
+    if (!fast || !fast->next) return nullptr;
+
+    while(slow != fast) {
+        slow = slow->next;
+        fast = fast->next;
+    }
+
+    return slow;
+}
 /*
  * @lc app=leetcode.cn id=142 lang=cpp
  *

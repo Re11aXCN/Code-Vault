@@ -1,3 +1,35 @@
+string addStrings(string num1, string num2) {
+    int n1Len = num1.size(), n2Len = num2.size();
+    if (n2Len > n1Len) return addStrings(std::move(num2), std::move(num1));
+    bool carry = false;
+    int i = n2Len - 1, j = n1Len - 1;
+    for( ; i >= 0; --i, --j) {
+        int sum = num1[j] - '0' + num2[i] - '0' + (carry ? 1 : 0);
+        if (sum > 9) {
+            carry = true;
+            num1[j] = sum - 10 + '0';
+        }
+        else {
+            carry = false;
+            num1[j] = sum + '0';
+        }
+    }
+    while (carry && j >= 0) {
+        if (num1[j] == '9') {
+            num1[j] = '0';
+            carry = true;
+            --j;
+        } else {
+            num1[j] += 1;
+            carry = false;
+        }
+    }
+    if (carry) {
+        num1 = "1" + num1;
+    }
+
+    return num1;
+}
 /*
  * @lc app=leetcode.cn id=415 lang=cpp
  *

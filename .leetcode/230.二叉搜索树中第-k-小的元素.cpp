@@ -1,3 +1,49 @@
+    int kthSmallest(TreeNode* root, int k) {
+        std::stack<TreeNode*> stk;
+        TreeNode* curr = root;
+        int count = 0;
+        while (curr || !stk.empty()) {
+            while(curr) {
+                stk.push(curr);
+                curr = curr->left;
+            }
+
+            curr = stk.top(); stk.pop();
+            if(++count == k) return curr->val;
+
+            curr = curr->right;
+        }
+        return -1;
+    }
+    int kthSmallest(TreeNode* root, int k) {
+        TreeNode* curr = root;
+        int kSmall = 0, count = 0;
+        while(curr) {
+            TreeNode* predecessor = curr->left;
+            if (predecessor) {
+                while(predecessor->right && predecessor->right != curr) predecessor = predecessor->right;
+
+                if (predecessor->right) {
+                    if(++count == k) {
+                        kSmall = curr->val; // 不能提前return，break，因为leetcode需要使用树进行判断是否正确
+                    }
+                    predecessor->right = nullptr;
+                    curr = curr->right;
+                }
+                else {
+                    predecessor->right = curr;
+                    curr = curr->left;
+                }
+            }
+            else {
+                if(++count == k) {
+                    kSmall = curr->val;
+                }
+                curr = curr->right;
+            }
+        }
+        return kSmall;
+    }
 /*
  * @lc app=leetcode.cn id=230 lang=cpp
  *

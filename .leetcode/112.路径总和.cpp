@@ -1,3 +1,20 @@
+bool hasPathSum(TreeNode* root, int targetSum) {
+    std::stack<std::pair<TreeNode*, int>> stk;
+    stk.emplace(root, targetSum);
+
+    while(!stk.empty()) {
+        auto [node, val] = stk.top(); stk.pop();
+
+        if (!node) continue;
+
+        if (!node->left && !node->right && val == node->val) return true;
+
+        stk.emplace(node->left, val - node->val);
+        stk.emplace(node->right, val - node->val);
+    }
+
+    return false;
+}
 /*
  * @lc app=leetcode.cn id=112 lang=cpp
  *

@@ -1,3 +1,39 @@
+    vector<vector<int>> zigzagLevelOrder(TreeNode* root) {
+        if (!root) return {};
+        std::vector<std::vector<int>> result; result.reserve(4);
+
+        std::vector<TreeNode*> queue; queue.reserve(8);
+        int left = 0, right = 1;
+        queue.emplace_back(root);
+        int levelNum = 1;
+        while(left != queue.size()) {
+            int size = right - left;
+            std::vector<int> levelVec; levelVec.reserve(/*std::pow(2, levelNum - 1)*/ right - left);
+            if (levelNum++ & 1) {
+                std::transform(queue.begin() + left, queue.end(), std::back_inserter(levelVec), [](TreeNode* n) { return n->val; });
+                result.push_back(std::move(levelVec));
+            }
+            else {
+                std::transform(queue.rbegin(), queue.rbegin() + size, std::back_inserter(levelVec), [](TreeNode* n) { return n->val; });
+                result.push_back(std::move(levelVec));
+            }
+            int oldLeft = left;
+            left = right;
+            while (oldLeft != left) {
+                TreeNode* node = queue[oldLeft++];
+                if (node->left) {
+                    queue.emplace_back(node->left);
+                    ++right;
+                }
+                if (node->right) {
+                    queue.emplace_back(node->right);
+                    ++right;
+                }
+            }
+        }
+        
+        return result;
+    }
 /*
  * @lc app=leetcode.cn id=103 lang=cpp
  *

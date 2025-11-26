@@ -14,10 +14,12 @@ public:
     vector<vector<int>> permute(vector<int>& nums) {
 #ifdef RECURSION_BACKTRACKING
         // 递归回溯法
-        vector<vector<int>> result;
-        vector<int> path;
-        vector<bool> used(nums.size(), false);
-        backtrack(nums, path, used, result);
+        vector<vector<int>> result; result.reserve(static_cast<int>(std::tgamma(nums.size() + 1)));
+        vector<int> currSet; currSet.reserve(nums.size());
+        vector<char> used(nums.size(), false);
+
+        backtrack(nums, result, currSet, used);
+
         return result;
 #elif defined(SWAP_METHOD)
         // 交换法
@@ -38,28 +40,26 @@ public:
 
 private:
     // 递归回溯法辅助函数
-    void backtrack(const vector<int>& nums, vector<int>& path, vector<bool>& used, vector<vector<int>>& result) {
+    void backtrack(auto& nums, auto& result, auto& currSet, auto& used) {
         // 如果路径长度等于数组长度，说明找到了一个排列
-        if (path.size() == nums.size()) {
-            result.push_back(path);
+        if (currSet.size() == nums.size()) {
+            result.emplace_back(currSet.begin(), currSet.end());
             return;
         }
-        
         // 尝试选择每个数字
-        for (int i = 0; i < nums.size(); i++) {
+        for(int i = 0; i < nums.size(); ++i) {
             // 如果当前数字已经使用过，则跳过
             if (used[i]) continue;
-            
-            // 选择当前数字
-            path.push_back(nums[i]);
+
+            currSet.emplace_back(nums[i]);
             used[i] = true;
             
             // 递归生成剩余数字的排列
-            backtrack(nums, path, used, result);
-            
+            backtrack(nums, result, currSet, used);
+
             // 回溯，撤销选择
+            currSet.pop_back();
             used[i] = false;
-            path.pop_back();
         }
     }
     

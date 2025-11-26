@@ -1,4 +1,22 @@
 /*
+错误的思想，最长路径不一定是根节点的左右子树高度相加，而是每一个节点作为根节点的时候左右子树高度相加的最大值
+int diameterOfBinaryTree(TreeNode* root) {
+    if (!root) return 0;
+    if (!root->left) return height(root->right);
+    if (!root->right) return height(root->left);
+
+    return height(root->right) + height(root->left);
+}
+
+int height(TreeNode* root){
+    if (!root) return 0;
+
+    int lLen = height(root->left);
+    int rLen = height(root->right);
+    return std::max(lLen, rLen) + 1;
+}
+*/
+/*
  * @lc app=leetcode.cn id=543 lang=cpp
  *
  * [543] 二叉树的直径

@@ -1,3 +1,25 @@
+    void nextPermutation(vector<int>& nums) {
+        auto first = nums.begin();
+        auto last = nums.end();
+        auto back = last;
+        if (first == last || first == --back) return;
+
+        while(true) {
+            auto back_next = back;
+            if(*--back < *back_next) {
+                auto prev = last;
+                do { --prev; } while (*back >= *prev);
+
+                swap(*back, *prev);
+                reverse(back_next, last);
+                return;
+            }
+            if (back == first) {
+                reverse(first, last);
+                return;
+            }
+        }
+    }
 /*
  * @lc app=leetcode.cn id=31 lang=cpp
  *

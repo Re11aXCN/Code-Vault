@@ -1,4 +1,27 @@
-﻿/*
+﻿vector<int> dailyTemperatures(vector<int>& temperatures) {
+    int prev_size = temperatures.size() - 1;
+    std::vector<int> result(prev_size + 1, 0);
+    std::vector<std::pair<int, int>> stk; stk.reserve(prev_size);
+
+    #pragma GCC unroll 8
+    for(int i = 0; i < prev_size; ++i) {
+        if (temperatures[i] >= temperatures[i + 1]) {
+            stk.emplace_back(temperatures[i], i);
+        }
+        else {
+            result[i] = 1;
+            while(!stk.empty()) {
+                if (auto [val, idx] = stk.back(); temperatures[i + 1] > val) {
+                    result[idx] = i + 1 - idx;
+                    stk.pop_back();
+                }
+                else break;
+            }
+        }
+    }
+    return result;
+}
+/*
  * @lc app=leetcode.cn id=739 lang=cpp
  *
  * [739] 每日温度
@@ -16,7 +39,7 @@ public:
         int size = temperatures.size();
         std::vector<int> res(size, 0); // 最后一个始终是0，所以设置为0，而不是1
         std::stack<int> stk_idx; // 单调栈（存储索引，栈内温度递减）
-
+        
         for(int i = 0; i < size; ++i)
         {
             #pragma GCC unroll 4

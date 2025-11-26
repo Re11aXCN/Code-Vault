@@ -1,195 +1,21 @@
-﻿// 最优写法 3ms
-class Solution {
-    template<typename _NumericType, std::uint32_t _Bucket_size = 256U, typename _MaxCapacityType = uint32_t>
-    requires (std::is_arithmetic_v<_NumericType> && !std::is_same_v<_NumericType, bool> && (_Bucket_size == 256U || _Bucket_size == 65536U))
-void radix_sort(_NumericType* _Ptr, std::size_t _Size)
-{
-#pragma push_macro("min")
-#undef min
-    static_assert(
-        std::is_same_v<_MaxCapacityType, uint32_t> ||
-        std::is_same_v<_MaxCapacityType, size_t> ||
-        std::is_same_v<_MaxCapacityType, uint64_t> ||
-        std::is_same_v<_MaxCapacityType, uintmax_t> ||
-        std::is_same_v<_MaxCapacityType, unsigned> ||
-        std::is_same_v<_MaxCapacityType, unsigned int> ||
-        std::is_same_v<_MaxCapacityType, unsigned long long>,
-        "T must be an unsigned integer type (uint32_t, size_t, uint64_t, etc.)"
-        );
-    using _Unsigned = std::make_unsigned_t<_NumericType>;
-
-    if (_Size <= 1) return;
-
-    constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(_NumericType) : (sizeof(_NumericType) + 1) >> 1;
-    constexpr std::uint16_t _Mask = _Bucket_size - 1; // 0xFF for 8-bit, 0xFFFF for 16-bit, etc.
-
-    std::array<_MaxCapacityType, _Bucket_size> _Bucket_count{};
-#ifdef USE_RADIX_SORT_OMP_PARALLEL
-    std::uint8_t _Hardware_concurrency{ (std::uint8_t)(omp_get_num_procs()) };
-    std::size_t _Chunk = (_Size + _Hardware_concurrency - 1) / _Hardware_concurrency;
-    std::vector<_MaxCapacityType> _Processor_local_buckets(_Bucket_size * _Hardware_concurrency);
-#else
-    std::array<_MaxCapacityType, _Bucket_size> _Scanned{};
-#endif // USE_RADIX_SORT_OMP_PARALLEL
-
-    std::vector<_NumericType> _Buffer(_Size);
-    _NumericType* _Start = _Ptr;
-    _NumericType* _End = _Buffer.data();
-
-    for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
-#ifdef USE_RADIX_SORT_OMP_PARALLEL
-#pragma omp parallel for schedule(static, 1)
-        for (std::uint8_t _Core = 0; _Core < _Hardware_concurrency; ++_Core) {
-            _MaxCapacityType* _Plb_ptr = _Processor_local_buckets.data() + _Bucket_size * _Core;
-            for (std::size_t _Idx = 0; _Idx < _Bucket_size; ++_Idx)  _Plb_ptr[_Idx] = 0;
-
-            for (std::size_t _Idx = _Core * _Chunk, _EIdx = std::min(_Size, (_Core + 1) * _Chunk); _Idx < _EIdx; ++_Idx) {
-                if constexpr (std::is_signed_v<_NumericType>) {
-                    _Unsigned _Value = std::bit_cast<_Unsigned>(_Start[_Idx]);
-                    std::uint16_t _Byte_idx = (_Value >> (_Pass * 8)) & _Mask;
-
-                    if (_Pass == _Passes - 1) _Byte_idx ^= _Bucket_size >> 1;
-
-                    ++_Plb_ptr[_Byte_idx];
-                }
-                else {
-                    ++_Plb_ptr[(_Start[_Idx] >> (_Pass * 8)) & _Mask];
-                }
-            }
-        }
-#else
-        std::fill(_Bucket_count.begin(), _Bucket_count.end(), 0);
-        // Count the number of elements per bucket
-        for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
-            if constexpr (std::is_signed_v<_NumericType>) {
-                _Unsigned _Value = std::bit_cast<_Unsigned>(_Start[_Idx]);
-                std::uint16_t _Byte_idx = (_Value >> (_Pass * 8)) & _Mask;
-
-                if (_Pass == _Passes - 1) _Byte_idx ^= _Bucket_size >> 1;
-
-                ++_Bucket_count[_Byte_idx];
-            }
-            else {
-                ++_Bucket_count[(_Start[_Idx] >> (_Pass * 8)) & _Mask];
-            }
-        }
-#endif // USE_RADIX_SORT_OMP_PARALLEL
-        // Calculate the sum of prefixes by exclusive scan
-#ifdef USE_RADIX_SORT_OMP_PARALLEL
-        std::size_t _Temp_sum{ 0 };
-        for (std::size_t _Idx = 0; _Idx < _Bucket_size; ++_Idx) {
-            std::size_t _Temp_sum_local{ 0 };
-            for (std::uint8_t _Core = 0; _Core < _Hardware_concurrency; ++_Core) {
-                std::size_t _Idx_local = _Bucket_size * _Core + _Idx;
-                _MaxCapacityType _Temp_count_local = _Processor_local_buckets[_Idx_local];
-                _Processor_local_buckets[_Idx_local] = _Temp_sum_local;
-                _Temp_sum_local += _Temp_count_local;
-            }
-            _Bucket_count[_Idx] = _Temp_sum;
-            _Temp_sum += _Temp_sum_local;
-        }
-#else
-        _Scanned[0] = 0;
-        for (std::size_t _Idx = 1; _Idx < _Bucket_size; ++_Idx) {
-            _Scanned[_Idx] = _Scanned[_Idx - 1] + _Bucket_count[_Idx - 1];
-        }
-#endif // USE_RADIX_SORT_OMP_PARALLEL
-
-#ifdef USE_RADIX_SORT_OMP_PARALLEL
-#pragma omp parallel for schedule(static, 1)
-        for (std::uint8_t _Core = 0; _Core < _Hardware_concurrency; ++_Core) {
-            _MaxCapacityType* _Plb_ptr = _Processor_local_buckets.data() + _Bucket_size * _Core;
-            for (std::size_t _Idx = 0; _Idx < _Bucket_size; ++_Idx)  _Plb_ptr[_Idx] += _Bucket_count[_Idx];
-
-            for (std::size_t _Idx = _Core * _Chunk, _EIdx = std::min(_Size, (_Core + 1) * _Chunk); _Idx < _EIdx; ++_Idx) {
-                if constexpr (std::is_signed_v<_NumericType>) {
-                    _Unsigned _Value = std::bit_cast<_Unsigned>(_Start[_Idx]);
-                    std::uint16_t _Byte_idx = (_Value >> (_Pass * 8)) & _Mask;
-
-                    if (_Pass == _Passes - 1) _Byte_idx ^= _Bucket_size >> 1;
-
-                    _End[_Plb_ptr[_Byte_idx]++] = _Start[_Idx];
-                }
-                else {
-                    _End[_Plb_ptr[(_Start[_Idx] >> (_Pass * 8)) & _Mask]++] = _Start[_Idx];
-                }
-            }
-        }
-#else
-        // Move elements to their final positions
-        for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
-            if constexpr (std::is_signed_v<_NumericType>) {
-                _Unsigned _Value = std::bit_cast<_Unsigned>(_Start[_Idx]);
-                std::uint16_t _Byte_idx = (_Value >> (_Pass * 8)) & _Mask;
-
-                if (_Pass == _Passes - 1) _Byte_idx ^= _Bucket_size >> 1;
-
-                _End[_Scanned[_Byte_idx]++] = _Start[_Idx];
-            }
-            else {
-                std::uint16_t _Byte_idx = (_Start[_Idx] >> (_Pass * 8)) & _Mask;
-                _End[_Scanned[_Byte_idx]++] = _Start[_Idx];
-            }
-
-        }
-#endif // USE_RADIX_SORT_OMP_PARALLEL
-        // Swap buffer
-        std::swap(_Start, _End);
-    }
-
-    if (_Start != _Ptr)  std::copy_n(_Start, _Size, _Ptr);
-#pragma pop_macro("min")
-}
-public:
-    int longestConsecutive(std::vector<int>& nums) {
-        if(nums.empty()) return 0;
-
-        radix_sort(nums.data(), nums.size());
-        int maxLen = 1, currentLen = 1;
-        int n = nums.size();
-        
-        #pragma GCC unroll 4
-        for (int i = 1; i < n; i++) {
-            if (nums[i] == nums[i-1] + 1) {
-                currentLen++;
-                maxLen = maxLen > currentLen ? maxLen : currentLen;
-            } else if (nums[i] != nums[i-1]) {
-                currentLen = 1;
-            }
-        }
-        
-        return maxLen;
-    }
-};
-
-
-// 比std::sort慢
+﻿// 标准写法
+// 2O(n)，建表，循环，空间O(n)
 int longestConsecutive(vector<int>& nums) {
-    if (nums.empty()) return 0;
-    
-    // 使用unordered_set去重，查找效率O(1)
-    unordered_set<int> numSet(nums.begin(), nums.end());
-    int longest = 0;
-    
-    for (int num : numSet) {
-        // 只有当num是序列的起点时才进入循环
-        // 即num-1不在set中，说明这是新序列的开始
-        if (numSet.find(num - 1) == numSet.end()) {
-            int currentNum = num;
-            int currentStreak = 1;
-            
-            // 向后查找连续的数字
-            while (numSet.find(currentNum + 1) != numSet.end()) {
-                currentNum++;
-                currentStreak++;
+    std::unordered_set<int> num_set(nums.begin(), nums.end());
+    int max_length = 0;
+    for (int num : num_set) {
+        if (num_set.find(num - 1) == num_set.end()) {
+            int current = num;
+            int length = 1;
+            while (num_set.find(++current) != num_set.end()) {
+                ++length;
             }
-            
-            // 更新最长连续序列长度
-            if(longest < currentStreak) longest = currentStreak;
+            if(max_length < length) max_length = length;
+            if(max_length * 2 >= nums.size()) break;
         }
     }
-    
-    return longest;
+
+    return max_length;
 }
 /*
  * @lc app=leetcode.cn id=128 lang=cpp
@@ -224,59 +50,186 @@ public:
            如果相差不等于1，则重置临时长度为1，重复元素跳过
       */
     int longestConsecutive(vector<int>& nums) {
-        if (nums.empty()) return 0;
-        int max_length = 1;
 #define SORT
 #ifdef SORT
-        ranges::sort(nums);
-        int current_len = 1; // 当前连续长度
-
-        // 单次遍历检查相邻元素
-        for (size_t i = 1; i < nums.size(); ++i) {
-            if (nums[i] == nums[i - 1] + 1) { // 严格连续递增
-                ++current_len;
-                max_length = std::max(max_length, current_len);
+        if (nums.empty()) return 0;
+        std::sort(nums.begin(), nums.end());
+        int currLen = 1, maxLen = currLen;
+        #pragma clang loop unroll_count(8)
+        for (auto it = std::next(nums.begin()); it != nums.end(); ++it) {
+            int prev_val = *std::prev(it);
+            if (prev_val == *it) continue;
+            if (prev_val + 1 == *it) {
+                if (++currLen > maxLen) maxLen = currLen;
+                if (maxLen * 2 >= nums.size()) break;
             }
-            else if (nums[i] != nums[i - 1]) { // 非重复元素时重置
-                current_len = 1;
+            else {
+                currLen = 1;
             }
-            // 若元素重复则跳过，保持当前长度不变
         }
+        return maxLen;
 #else
-        unordered_set<int> num_set(nums.begin(), nums.end());
+        int max_length = 1;
+        std::unordered_set<int> num_set(nums.begin(), nums.end()); // 替换为boost::unordered::unordered_flat_set（开放地址） 性能提升4~7倍
+        int max_length = 0;
         // C++23范围视图：筛选没有前驱的数字作为序列起点
-        auto start_points = num_set | views::filter([&](int num) {
-#ifdef _DEBUG
-
-            cout << format("filter num is {}", num) << endl;
-#endif
+        auto start_points = num_set | std::views::filter([&](int num) {
             return !num_set.contains(num - 1);
             });
-
         // 遍历所有起点，扩展连续序列
         for (int start : start_points) {
             int current = start;
             int length = 1;
-
             // 向后扩展序列直到不连续
             while (num_set.contains(++current)) {
                 ++length;
             }
 
-            max_length = max(max_length, length);
+            if(max_length < length) max_length = length;
+            if(max_length * 2 >= nums.size()) break;
         }
-#endif // SORT
         return max_length;
+#endif // SORT
     }
 };
 // @lc code=end
-#ifdef _DEBUG
-int main()
-{
-    Solution obj;
-    vector<int> nums{ 0,3,7,2,5,8,4,6,0,1,12,15,16 };
-    obj.longestConsecutive(nums);
-    return 0;
-}
-#endif
+
+// 最快基数排序，符合O(n), 排序8n + 8(256), 查找O(n), 空间 O(n) + 2 * 256
+class Solution {
+public: 
+    int longestConsecutive(vector<int>& nums) {
+        if (nums.empty()) return 0;
+        
+        using Iter_t = decltype(nums.begin());
+        using Value_t = typename std::iterator_traits<Iter_t>::value_type;  
+        radixsort<Iter_t, std::less<>, identity_key_extractor<Value_t>, 256U>(nums.begin(), nums.end(), {});
+
+        int currLen = 1, maxLen = currLen;
+        #pragma clang loop unroll_count(8)
+        for (auto it = std::next(nums.begin()); it != nums.end(); ++it) {
+            int prev_val = *std::prev(it);
+            if (prev_val == *it) continue;
+            if (prev_val + 1 == *it) {
+                if (++currLen > maxLen) maxLen = currLen;
+                if (maxLen * 2 >= nums.size()) break;
+            }
+            else {
+                currLen = 1;
+            }
+        }
+        return maxLen;
+    }
+
+    template<typename T>
+    struct identity_key_extractor {
+        template<typename U>
+        constexpr auto operator()(U&& value) const noexcept
+            -> std::enable_if_t<std::is_same_v<std::decay_t<U>, T>, T>
+        {
+            return std::forward<U>(value);
+        }
+    };
+
+    template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size>
+    requires((_Bucket_size == 256U || _Bucket_size == 65536U) && 
+             (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
+    void radixsort(ContigIter _First, ContigIter _Last, KeyExtractor _Extractor)
+    {
+        static_assert(std::contiguous_iterator<ContigIter>,
+            "Radix sort requires contiguous iterators (vector, array, raw pointers)");
+
+        using Value_t = typename std::iterator_traits<ContigIter>::value_type;
+
+        using Key_t = std::decay_t<decltype(_Extractor(std::declval<Value_t>()))>;
+        static_assert(std::is_arithmetic_v<Key_t> && !std::is_same_v<Key_t, bool>,
+            "Key type must be an arithmetic type (not bool)");
+
+        static_assert(!(_Bucket_size == 65536U && sizeof(Key_t) == 1),
+            "Radix sort with 65536 buckets is not supported for 1-byte keys");
+
+        using Unsigned_t = std::make_unsigned_t<
+            std::conditional_t<std::is_floating_point_v<Key_t>,
+            std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>,
+            Key_t>
+        >;
+
+        Value_t* _Ptr = &*_First;
+        std::size_t _Size = std::distance(_First, _Last);
+        if (_Size <= 1) return;
+
+        constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
+        constexpr std::uint8_t _Shift = _Bucket_size == 256U ? 3 : 4; // 8 or 16
+        constexpr std::uint16_t _Mask = _Bucket_size - 1; // 0xFF for 8-bit, 0xFFFF for 16-bit, etc.
+        constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
+
+        /*static */std::array<std::size_t, _Bucket_size> _Bucket_count;
+        /*static */std::array<std::size_t, _Bucket_size> _Scanned;
+
+        std::vector<Value_t> _Buffer(_Size);
+
+        Value_t* __restrict _Start = _Ptr;
+        Value_t* __restrict _End = _Buffer.data();
+
+        for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
+            std::fill(_Bucket_count.begin(), _Bucket_count.end(), 0);
+  
+            for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
+                Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
+
+                if constexpr (std::is_signed_v<Key_t>) {
+                    if constexpr (std::is_floating_point_v<Key_t>) {
+                        if constexpr (sizeof(Key_t) == 4)
+                            _Unsigned_value ^= (_Unsigned_value < 0) ? 0xFFFF'FFFFU : 0x8000'0000U;
+                        else
+                            _Unsigned_value ^= (_Unsigned_value < 0) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
+                    }
+                    else {
+                        if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                        else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                        else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                        else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                    }
+                }
+
+                std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
+
+                if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+
+                ++_Bucket_count[_Byte_idx];
+            }
+
+            std::exclusive_scan(_Bucket_count.begin(), _Bucket_count.end(), _Scanned.begin(), 0, std::plus<>{});
+            
+            for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
+                auto _Value = _Start[_Idx];
+                Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
+
+                if constexpr (std::is_signed_v<Key_t>) {
+                    if constexpr (std::is_floating_point_v<Key_t>) {
+                        if constexpr (sizeof(Key_t) == 4)
+                            _Unsigned_value ^= (_Unsigned_value < 0) ? 0xFFFF'FFFFU : 0x8000'0000U;
+                        else
+                            _Unsigned_value ^= (_Unsigned_value < 0) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
+                    }
+                    else {
+                        if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                        else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                        else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                        else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                    }
+                }
+
+                std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
+
+                if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+
+                _End[_Scanned[_Byte_idx]++] = _Value;
+            }
+            
+            std::swap(_Start, _End);
+        }
+        
+        if constexpr (sizeof(Key_t) == 1) std::copy_n(_Start, _Size, _Ptr);
+    }
+};
 

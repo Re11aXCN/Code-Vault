@@ -38,6 +38,8 @@ public:
         dp.front() = true;
         for (int j = 1; j <= s.size(); ++j) {
             // 只检查不超过maxLength长度的子串
+            // 如果 j - i > maxLength，则 s[i..j-1] 一定不是词典中的单词，检查它毫无意义
+            // 并且可以通过dp[i] 快速检查先前区间是否是true
             for (int i = std::max(0, j - (int)maxLength); i < j; ++i) {
                 // 如果s的前j个字符可以被拆分，且s[j...i-1]在wordDict中
                 if (dp[i] && wordSet.contains(std::string_view(s.data() + i, j - i))) {

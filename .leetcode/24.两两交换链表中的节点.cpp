@@ -1,3 +1,21 @@
+// 头插法易懂
+ListNode* swapPairs(ListNode* head) {
+    if (!head || !head->next) return head;
+
+    ListNode dummy(0, nullptr);
+    ListNode *dummyPtr = &dummy, *headPtr = head, *dummyTail = nullptr;
+    int round = -1;
+    while(headPtr) {
+        ++round;
+        ListNode* temp = headPtr;
+        headPtr = headPtr->next;
+        temp->next = dummyPtr->next;
+        dummyPtr->next = temp;
+        if (round & 1) dummyPtr = dummyTail;
+        else dummyTail = dummyPtr->next;
+    }
+    return dummy.next;
+}
 
  /*
  ptr prev next temp 
@@ -12,6 +30,7 @@
  */
 class Solution {
 public:
+    // 双指针交换前后
     ListNode* swapPairs(ListNode* head) {
         if(!head || !head->next) return head;
 
