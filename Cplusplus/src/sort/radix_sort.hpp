@@ -1,36 +1,37 @@
-﻿#include <type_traits>
+﻿// This is a header-only library that provides the implementation of radix sort algorithm in C++ 20.
+// 
+// <Time complexity: O(8N or 4N or 2N) , Space complexity: O(N + 2 * _Bucket_size)>
+// It depends on the number of bytes of the type and the _Bucket_size settings - 256 or 65536.
+// 
+// The code is based on the following 
+// article:
+// https://www.geeksforgeeks.org/radix-sort/
+// video:
+// https://www.bilibili.com/video/BV1Eoh8zyEG1/
+//
+
+#pragma once
+
+#include <type_traits>
 #include <vector>
 #include <array>
+#include <iterator>
 #include <algorithm>
 #include <bit>
-#include <iostream>
-#include <print>
-#include <string_view>
-#include <chrono>
-#include <random>
+#include <execution>
 #include <omp.h>
 
-// 迭代器解包工具函数
-template<typename Iterator>
-auto unwrap_iterator(Iterator first, Iterator last) -> std::pair<typename std::iterator_traits<Iterator>::value_type*, std::size_t> {
-    using value_type = typename std::iterator_traits<Iterator>::value_type;
+template <typename T>
+struct is_execution_policy : std::false_type {};
 
-    static_assert(std::contiguous_iterator<Iterator>,
-        "Radix sort requires contiguous iterators (vector, array, raw pointers)");
+template <>
+struct is_execution_policy<std::execution::sequenced_policy> : std::true_type {};
 
-    value_type* ptr = &*first;  // 关键：通过解引用获取指针
-    std::size_t size = std::distance(first, last);
+template <>
+struct is_execution_policy<std::execution::parallel_policy> : std::true_type {};
 
-    return { ptr, size };
-}
-
-struct sequential_execution_policy {};
-struct parallel_execution_policy {};
-
-constexpr sequential_execution_policy seq{};
-constexpr parallel_execution_policy par{};
-
-using default_execution_policy = sequential_execution_policy;
+template <typename T>
+inline constexpr bool is_execution_policy_v = is_execution_policy<T>::value;
 
 template<typename T>
 struct identity_key_extractor {
@@ -67,39 +68,48 @@ struct function_key_extractor {
     }
 };
 
-template<typename RanIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size>
+template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size>
     requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
               (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
-void radix_sort_impl(sequential_execution_policy&&, RanIter first, RanIter last, KeyExtractor _Extractor)
+void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, ContigIter _Last, KeyExtractor&& _Extractor)
 {
-    using ValueType = typename std::iterator_traits<RanIter>::value_type;
-    using _Key_t = std::decay_t<decltype(_Extractor(std::declval<ValueType>()))>;
-    static_assert(std::is_arithmetic_v<_Key_t> && !std::is_same_v<_Key_t, bool>,
+    static_assert(std::contiguous_iterator<ContigIter>,
+        "Radix sort requires contiguous iterators (vector, array, raw pointers)");
+
+    using Value_t = typename std::iterator_traits<ContigIter>::value_type;
+
+    using Key_t = std::decay_t<decltype(_Extractor(std::declval<Value_t>()))>;
+    static_assert(std::is_arithmetic_v<Key_t> && !std::is_same_v<Key_t, bool>,
         "Key type must be an arithmetic type (not bool)");
 
-    using _Unsigned_t = std::make_unsigned_t<
-        std::conditional_t<std::is_floating_point_v<_Key_t>,
-        std::conditional_t<sizeof(_Key_t) == 4, std::uint32_t, std::uint64_t>,
-        _Key_t>
+    static_assert(!(_Bucket_size == 65536U && sizeof(Key_t) == 1),
+        "Radix sort with 65536 buckets is not supported for 1-byte keys");
+
+    using Unsigned_t = std::make_unsigned_t<
+        std::conditional_t<std::is_floating_point_v<Key_t>,
+        std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>,
+        Key_t>
     >;
 
-    auto [_Ptr, _Size] = unwrap_iterator(first, last);
+    Value_t* _Ptr = &*_First;
+    std::size_t _Size = std::distance(_First, _Last);
     if (_Size <= 1) return;
 
-    constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(_Key_t) : sizeof(_Key_t) >> 1;
+    constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
+    constexpr std::uint8_t _Shift = _Bucket_size == 256U ? 3 : 4; // 8 or 16
     constexpr std::uint16_t _Mask = _Bucket_size - 1; // 0xFF for 8-bit, 0xFFFF for 16-bit, etc.
     constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
 
-    /*static */std::array<std::size_t, _Bucket_size> _Bucket_count{};
-    /*static */std::array<std::size_t, _Bucket_size> _Scanned{};
+    /*static */std::array<std::size_t, _Bucket_size> _Bucket_count;
+    /*static */std::array<std::size_t, _Bucket_size> _Scanned;
 
-    std::vector<ValueType> _Buffer(_Size);
+    std::vector<Value_t> _Buffer(_Size);
 #if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
-    ValueType* __restrict _Start = _Ptr;
-    ValueType* __restrict _End = _Buffer.data();
+    Value_t* __restrict _Start = _Ptr;
+    Value_t* __restrict _End = _Buffer.data();
 #else
-    ValueType* _Start = _Ptr;
-    ValueType* _End = _Buffer.data();
+    Value_t* _Start = _Ptr;
+    Value_t* _End = _Buffer.data();
 #endif
     for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
         std::fill(_Bucket_count.begin(), _Bucket_count.end(), 0);
@@ -111,27 +121,27 @@ void radix_sort_impl(sequential_execution_policy&&, RanIter first, RanIter last,
 #endif
         // Count the number of elements per bucket
         for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
-            _Unsigned_t _Unsigned_value;
+            Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
-            if constexpr (std::is_floating_point_v<_Key_t>) {
-                _Unsigned_value = std::bit_cast<_Unsigned_t>(_Extractor(_Start[_Idx]));
-                // Invert the most significant bit (sign bit)
-                if constexpr (sizeof(_Key_t) == 4)
-                    _Unsigned_value ^= (_Unsigned_value & 0x80000000) ? 0xFFFFFFFF : 0x80000000;
-                else
-                    _Unsigned_value ^= (_Unsigned_value & 0x8000000000000000) ? 0xFFFFFFFFFFFFFFFF : 0x8000000000000000;
-            }
-            else {
-                _Unsigned_value = std::bit_cast<_Unsigned_t>(_Extractor(_Start[_Idx]));
+            if constexpr (std::is_signed_v<Key_t>) {
+                if constexpr (std::is_floating_point_v<Key_t>) {
+                    // Invert the most significant bit (sign bit)
+                    if constexpr (sizeof(Key_t) == 4)
+                        _Unsigned_value ^= (_Unsigned_value & 0x8000'0000U) ? 0xFFFF'FFFFU : 0x8000'0000U;
+                    else
+                        _Unsigned_value ^= (_Unsigned_value & 0x8000'0000'0000'0000ULL) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
+                }
+                else {
+                    if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                    else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                    else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                    else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                }
             }
 
-            std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass * 8)) & _Mask;
+            std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
 
             if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
-
-            if constexpr (std::is_signed_v<_Key_t> && !std::is_floating_point_v<_Key_t>) {
-                if (_Pass == _Passes - 1) _Byte_idx ^= _Bucket_size >> 1;
-            }
 
             ++_Bucket_count[_Byte_idx];
         }
@@ -160,60 +170,66 @@ void radix_sort_impl(sequential_execution_policy&&, RanIter first, RanIter last,
 #endif
         // Move elements to their final positions
         for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
-            auto _Value = _Start[_Idx];
-            _Unsigned_t _Unsigned_value;
+            auto _Value = std::move(_Start[_Idx]);
+            Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
-            if constexpr (std::is_floating_point_v<_Key_t>) {
-                _Unsigned_value = std::bit_cast<_Unsigned_t>(_Extractor(_Value));
-                if constexpr (sizeof(_Key_t) == 4)
-                    _Unsigned_value ^= (_Unsigned_value & 0x80000000) ? 0xFFFFFFFF : 0x80000000;
-                else
-                    _Unsigned_value ^= (_Unsigned_value & 0x8000000000000000) ? 0xFFFFFFFFFFFFFFFF : 0x8000000000000000;
-            }
-            else {
-                _Unsigned_value = std::bit_cast<_Unsigned_t>(_Extractor(_Value));
+            if constexpr (std::is_signed_v<Key_t>) {
+                if constexpr (std::is_floating_point_v<Key_t>) {
+                    if constexpr (sizeof(Key_t) == 4)
+                        _Unsigned_value ^= (_Unsigned_value & 0x8000'0000U) ? 0xFFFF'FFFFU : 0x8000'0000U;
+                    else
+                        _Unsigned_value ^= (_Unsigned_value & 0x8000'0000'0000'0000ULL) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
+                }
+                else {
+                    if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                    else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                    else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                    else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                }
             }
 
-            std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass * 8)) & _Mask;
+            std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
 
             if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
 
-            if constexpr (std::is_signed_v<_Key_t> && !std::is_floating_point_v<_Key_t>) {
-                if (_Pass == _Passes - 1) _Byte_idx ^= _Bucket_size >> 1;
-            }
-
-            _End[_Scanned[_Byte_idx]++] = _Value;
+            _End[_Scanned[_Byte_idx]++] = std::move(_Value);
         }
         // Swap buffer
         std::swap(_Start, _End);
     }
-
     // Note that _Buffer is a temporary variable, using copy_n not swap
     // If passes is ODD, we need to copy the data back to the original array
     // But passes is EVEN, we already have the data in the buffer
-    // if (_Start != _Ptr)  std::copy_n(_Start, _Size, _Ptr);
+    // if (_Start != _Ptr)  std::copy_n(_Start, _Size, _Ptr); //std::copy_n(std::make_move_iterator(_Start), _Size, _Ptr);
+    if constexpr (_Passes & 1) std::move(_Start, _Start + _Size, _Ptr);
 }
 
-template<typename RanIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size>
+template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size>
     requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
               (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
-void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, KeyExtractor _Extractor)
+void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigIter _Last, KeyExtractor&& _Extractor)
 {
-    using ValueType = typename std::iterator_traits<RanIter>::value_type;
-    using _Key_t = std::decay_t<decltype(_Extractor(std::declval<ValueType>()))>;
-    static_assert(std::is_arithmetic_v<_Key_t> && !std::is_same_v<_Key_t, bool>,
-        "Key type must be an arithmetic type (not bool)");
+    static_assert(std::contiguous_iterator<ContigIter>,
+        "Radix sort requires contiguous iterators (vector, array, raw pointers)");
 
-    using _Unsigned_t = std::make_unsigned_t<
-        std::conditional_t<std::is_floating_point_v<_Key_t>,
-        std::conditional_t<sizeof(_Key_t) == 4, std::uint32_t, std::uint64_t>,
-        _Key_t>
+    using Value_t = typename std::iterator_traits<ContigIter>::value_type;
+
+    using Key_t = std::decay_t<decltype(_Extractor(std::declval<Value_t>()))>;
+    static_assert(std::is_arithmetic_v<Key_t> && !std::is_same_v<Key_t, bool> && sizeof(Key_t) >= 4,
+        "Key type must be an arithmetic type (not bool) and at least 4 bytes. If you want to sort 8bits or 16bits, please using sequential_execution_policy.");
+
+    using Unsigned_t = std::make_unsigned_t<
+        std::conditional_t<std::is_floating_point_v<Key_t>,
+        std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>,
+        Key_t>
     >;
 
-    auto [_Ptr, _Size] = unwrap_iterator(first, last);
+    Value_t* _Ptr = &*_First;
+    std::size_t _Size = std::distance(_First, _Last);
     if (_Size <= 1) return;
 
-    constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(_Key_t) : sizeof(_Key_t) >> 1;
+    constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
+    constexpr std::uint8_t _Shift = _Bucket_size == 256U ? 3 : 4;
     constexpr std::uint16_t _Mask = _Bucket_size - 1;
     constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
 
@@ -241,15 +257,15 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
         };
 
     // 优化：使用固定大小的全局前缀数组，避免动态分配
-    std::array<std::size_t, _Bucket_size> _Global_prefix{};
+    std::array<std::size_t, _Bucket_size> _Global_prefix;
 
-    std::vector<ValueType> _Buffer(_Size);
+    std::vector<Value_t> _Buffer(_Size);
 #if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
-    ValueType* __restrict _Start = _Ptr;
-    ValueType* __restrict _End = _Buffer.data();
+    Value_t* __restrict _Start = _Ptr;
+    Value_t* __restrict _End = _Buffer.data();
 #else
-    ValueType* _Start = _Ptr;
-    ValueType* _End = _Buffer.data();
+    Value_t* _Start = _Ptr;
+    Value_t* _End = _Buffer.data();
 #endif
     for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
         // Phase 1: 并行计数阶段
@@ -265,34 +281,34 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
                 // 计算当前线程处理的区间
                 const std::size_t _Start_idx = _Thread_id * _Chunk;
                 const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
-
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
                 // 本地计数
                 for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
-                    _Unsigned_t _Unsigned_value;
+                    Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
-                    if constexpr (std::is_floating_point_v<_Key_t>) {
-                        _Unsigned_value = std::bit_cast<_Unsigned_t>(_Extractor(_Start[_Idx]));
-                        // 处理浮点数的符号位
-                        if constexpr (sizeof(_Key_t) == 4) {
-                            _Unsigned_value ^= (_Unsigned_value & 0x80000000) ? 0xFFFFFFFF : 0x80000000;
+                    if constexpr (std::is_signed_v<Key_t>) {
+                        if constexpr (std::is_floating_point_v<Key_t>) {
+                            if constexpr (sizeof(Key_t) == 4)
+                                _Unsigned_value ^= (_Unsigned_value & 0x8000'0000U) ? 0xFFFF'FFFFU : 0x8000'0000U;
+                            else
+                                _Unsigned_value ^= (_Unsigned_value & 0x8000'0000'0000'0000ULL) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
                         }
                         else {
-                            _Unsigned_value ^= (_Unsigned_value & 0x8000000000000000) ? 0xFFFFFFFFFFFFFFFF : 0x8000000000000000;
+                            if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                            else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                            else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                            else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
                         }
                     }
-                    else {
-                        _Unsigned_value = std::bit_cast<_Unsigned_t>(_Extractor(_Start[_Idx]));
-                    }
 
-                    std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass * 8)) & _Mask;
+                    std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
 
-                    // 处理降序排序
                     if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
-
-                    // 处理有符号整数的最高位
-                    if constexpr (std::is_signed_v<_Key_t> && !std::is_floating_point_v<_Key_t>) {
-                        if (_Pass == _Passes - 1) _Byte_idx ^= _Bucket_size >> 1;
-                    }
 
                     ++_Local_buckets[_Byte_idx];
                 }
@@ -304,19 +320,17 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
             // 步骤2.1: 全局归约 - 优化内存访问模式
             std::fill(_Global_prefix.begin(), _Global_prefix.end(), 0);
 
-            // 优化：外层循环遍历桶，内层循环遍历线程，提高缓存局部性
+            for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+                std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
 #if defined(__clang__)
-#pragma clang loop unroll_count(8)
+#pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
 #elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
 #pragma GCC unroll 8
 #elif defined(_MSC_VER)
 #endif
-            for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
-                std::size_t _Bucket_total = 0;
-                for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
-                    _Bucket_total += _Func_get_local_buckets(_Thread)[_Bucket];
+                for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+                    _Global_prefix[_Bucket] += _Local_buckets[_Bucket];
                 }
-                _Global_prefix[_Bucket] = _Bucket_total;
             }
 
             // 步骤2.2: 计算全局前缀和
@@ -335,10 +349,15 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
 
             // 步骤2.3: 计算本地偏移量 - 单次遍历完成
             for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+#if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
+                std::size_t* __restrict _Local_buckets = _Func_get_local_buckets(_Thread);
+                std::size_t* __restrict _Local_offsets = _Func_get_local_offsets(_Thread);
+#else
                 std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
                 std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread);
+#endif
 #if defined(__clang__)
-#pragma clang loop unroll_count(8)
+#pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
 #elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
 #pragma GCC unroll 8
 #elif defined(_MSC_VER)
@@ -360,114 +379,118 @@ void radix_sort_impl(parallel_execution_policy&&, RanIter first, RanIter last, K
                 // 计算当前线程处理的区间
                 const std::size_t _Start_idx = _Thread_id * _Chunk;
                 const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
-
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
                 // 散射元素到正确位置
                 for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
-                    auto _Value = _Start[_Idx];
-                    _Unsigned_t _Unsigned_value;
+                    auto _Value = std::move(_Start[_Idx]);
+                    Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
-                    if constexpr (std::is_floating_point_v<_Key_t>) {
-                        _Unsigned_value = std::bit_cast<_Unsigned_t>(_Extractor(_Value));
-                        if constexpr (sizeof(_Key_t) == 4) {
-                            _Unsigned_value ^= (_Unsigned_value & 0x80000000) ? 0xFFFFFFFF : 0x80000000;
+                    if constexpr (std::is_signed_v<Key_t>) {
+                        if constexpr (std::is_floating_point_v<Key_t>) {
+                            if constexpr (sizeof(Key_t) == 4)
+                                _Unsigned_value ^= (_Unsigned_value & 0x8000'0000U) ? 0xFFFF'FFFFU : 0x8000'0000U;
+                            else
+                                _Unsigned_value ^= (_Unsigned_value & 0x8000'0000'0000'0000ULL) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
                         }
                         else {
-                            _Unsigned_value ^= (_Unsigned_value & 0x8000000000000000) ? 0xFFFFFFFFFFFFFFFF : 0x8000000000000000;
+                            if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                            else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                            else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                            else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
                         }
                     }
-                    else {
-                        _Unsigned_value = std::bit_cast<_Unsigned_t>(_Extractor(_Value));
-                    }
 
-                    std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass * 8)) & _Mask;
+                    std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
 
                     if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
 
-                    if constexpr (std::is_signed_v<_Key_t> && !std::is_floating_point_v<_Key_t>) {
-                        if (_Pass == _Passes - 1) _Byte_idx ^= _Bucket_size >> 1;
-                    }
-
-                    _End[_Local_offsets[_Byte_idx]++] = _Value;
+                    _End[_Local_offsets[_Byte_idx]++] = std::move(_Value);
                 }
             }
         }
 
-        // 交换缓冲区，准备下一轮
         std::swap(_Start, _End);
     }
+
+    if constexpr (_Passes & 1) std::move(_Start, _Start + _Size, _Ptr);
+}
+
+// 带键提取器的完整版本
+template<typename ExecutionPolicy, typename ContigIter, typename Compare, typename KeyExtractor,
+    std::uint32_t BucketSize = 256U,
+    std::enable_if_t<is_execution_policy_v<std::decay_t<ExecutionPolicy>>, int> = 0>
+void radix_sort(ExecutionPolicy policy, ContigIter first, ContigIter last, Compare comp, KeyExtractor&& extractor)
+{
+    radix_sort_impl<ContigIter, Compare, KeyExtractor, BucketSize>(policy, first, last, std::forward<KeyExtractor>(extractor));
 }
 
 // 基础版本：接受比较器和执行策略
-template<typename ExecutionPolicy, typename RanIter, typename Compare>
-void radix_sort(ExecutionPolicy&& policy, RanIter first, RanIter last, Compare comp)
+template<typename ExecutionPolicy, typename ContigIter, typename Compare>
+void radix_sort(ExecutionPolicy&& policy, ContigIter first, ContigIter last, Compare comp)
 {
-    using ValueType = typename std::iterator_traits<RanIter>::value_type;
-    radix_sort_impl<RanIter, Compare, identity_key_extractor<ValueType>, 256U>(
-        static_cast<std::decay_t<ExecutionPolicy>>(policy), first, last, {});
+    using Value_t = std::iter_value_t<ContigIter>;
+    radix_sort(std::forward<ExecutionPolicy>(policy), first, last, comp, identity_key_extractor<Value_t>{});
 }
 
 // 基础版本：只接受比较器（默认执行策略）
-template<typename RanIter, typename Compare>
-void radix_sort(RanIter first, RanIter last, Compare comp)
+template<typename ContigIter, typename Compare>
+void radix_sort(ContigIter first, ContigIter last, Compare comp)
 {
-    radix_sort(default_execution_policy{}, first, last, comp);
-}
-
-// 简化版本：只接受迭代器范围（默认升序，默认执行策略）
-template<typename RanIter>
-void radix_sort(RanIter first, RanIter last)
-{
-    radix_sort(first, last, std::less<>{});
+    radix_sort(std::execution::seq, first, last, comp);
 }
 
 // 执行策略版本：只接受迭代器范围（默认升序）
-template<typename ExecutionPolicy, typename RanIter>
-void radix_sort(ExecutionPolicy&& policy, RanIter first, RanIter last)
+template<typename ExecutionPolicy, typename ContigIter>
+void radix_sort(ExecutionPolicy&& policy, ContigIter first, ContigIter last)
 {
     radix_sort(std::forward<ExecutionPolicy>(policy), first, last, std::less<>{});
 }
 
-// 带键提取器的完整版本
-template<typename ExecutionPolicy, typename RanIter, typename Compare, typename KeyExtractor, std::uint32_t BucketSize = 256U>
-void radix_sort(ExecutionPolicy&& policy, RanIter first, RanIter last, Compare comp, KeyExtractor extractor) 
+// 简化版本：只接受迭代器范围（默认升序，默认执行策略）
+template<typename ContigIter>
+void radix_sort(ContigIter first, ContigIter last)
 {
-    radix_sort_impl<RanIter, Compare, KeyExtractor, BucketSize>(
-        static_cast<std::decay_t<ExecutionPolicy>>(policy), first, last, extractor);
+    radix_sort(first, last, std::less<>{});
 }
 
 // 辅助函数：按成员排序
-template<typename ExecutionPolicy, typename RanIter, typename KeyType, typename Compare = std::less<>>
-void radix_sort_by_member(ExecutionPolicy&& policy, RanIter first, RanIter last,
-    KeyType std::iter_value_t<RanIter>::* member_ptr,
-    Compare comp = {}) {
-    using ValueType = std::iter_value_t<RanIter>;
-    radix_sort(std::forward<ExecutionPolicy>(policy), first, last, comp,
-        member_key_extractor<ValueType, KeyType>{member_ptr});
+template<typename ExecutionPolicy, typename ContigIter, typename KeyType, typename Compare = std::less<>>
+void radix_sort_by_member(ExecutionPolicy&& policy, ContigIter first, ContigIter last,
+    KeyType (std::iter_value_t<ContigIter>::* member_ptr),
+    Compare comp = {}) 
+{
+    using Value_t = std::iter_value_t<ContigIter>;
+    radix_sort(std::forward<ExecutionPolicy>(policy), first, last, comp, member_key_extractor<Value_t, KeyType>{member_ptr});
 }
 
-template<typename RanIter, typename KeyType, typename Compare = std::less<>>
-void radix_sort_by_member(RanIter first, RanIter last,
-    KeyType std::iter_value_t<RanIter>::* member_ptr,
-    Compare comp = {}) {
-    using ValueType = std::iter_value_t<RanIter>;
-    radix_sort_by_member(default_execution_policy{}, first, last, member_ptr, comp);
+template<typename ContigIter, typename KeyType, typename Compare = std::less<>>
+void radix_sort_by_member(ContigIter first, ContigIter last,
+    KeyType (std::iter_value_t<ContigIter>::* member_ptr),
+    Compare comp = {}) 
+{
+    using Value_t = std::iter_value_t<ContigIter>;
+    radix_sort_by_member(std::execution::seq, first, last, member_ptr, comp);
 }
 
 // 辅助函数：按函数排序
-template<typename ExecutionPolicy, typename RanIter, typename Func, typename Compare = std::less<>>
-void radix_sort_by(ExecutionPolicy&& policy, RanIter first, RanIter last, Func&& func, Compare comp = {})
+template<typename ExecutionPolicy, typename ContigIter, typename Func, typename Compare = std::less<>>
+void radix_sort_by(ExecutionPolicy&& policy, ContigIter first, ContigIter last, Func&& func, Compare comp = {})
 {
-    radix_sort(std::forward<ExecutionPolicy>(policy), first, last, comp,
-        function_key_extractor<std::decay_t<Func>>{std::forward<Func>(func)});
+    radix_sort(std::forward<ExecutionPolicy>(policy), first, last, comp, function_key_extractor<std::decay_t<Func>>{std::forward<Func>(func)});
 }
 
-template<typename RanIter, typename Func, typename Compare = std::less<>>
-void radix_sort_by(RanIter first, RanIter last, Func&& func, Compare comp = {})
+template<typename ContigIter, typename Func, typename Compare = std::less<>>
+void radix_sort_by(ContigIter first, ContigIter last, Func&& func, Compare comp = {})
 {
-    radix_sort_by(default_execution_policy{}, first, last, std::forward<Func>(func), comp);
+    radix_sort_by(std::execution::seq, first, last, std::forward<Func>(func), comp);
 }
-
-#include "utils/ticktock.h"
+/*
+#include "tools/ticktock.h"
 int radix_sort_test() {
     struct Point {
         int x;
@@ -505,9 +528,9 @@ int radix_sort_test() {
     std::cout << "Sorted by x+y: ";
     print_points(points);
 
-    const size_t count = 1 << 19; // 2的14次方 = 16384
+    const size_t count = 1 << 20; // 2的20次方 = 1,048,576
 
-    std::vector<float> randomNumbers/*{ 3.14, -2.71, 0.0, 1.41, -1.0 }*/;
+    std::vector<float> randomNumbers; //{ 3.14, -2.71, 0.0, 1.41, -1.0 };
     randomNumbers.reserve(count);
 
     std::random_device rd;
@@ -519,11 +542,11 @@ int radix_sort_test() {
     }
     std::vector<float> temp1(randomNumbers);
     TICK(_1);
-    radix_sort(par, randomNumbers.begin(), randomNumbers.end());
+    radix_sort(std::execution::seq, randomNumbers.begin(), randomNumbers.end());
     TOCK(_1);
 
     TICK(_2);
-    radix_sort(par, temp1.begin(), temp1.end(), std::greater<>{});
+    radix_sort(std::execution::par, temp1.begin(), temp1.end(), std::greater<>{});
     TOCK(_2);
 
     std::cout << std::boolalpha << std::is_sorted(randomNumbers.begin(), randomNumbers.end()) << std::endl;
@@ -532,3 +555,4 @@ int radix_sort_test() {
     std::cout << std::endl;
     return 0;
 }
+*/
