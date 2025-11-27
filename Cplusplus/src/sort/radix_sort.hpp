@@ -103,6 +103,11 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
     constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
     constexpr std::uint8_t _Shift = _Bucket_size == 256U ? 3 : 4; // 8 or 16
     constexpr std::uint16_t _Mask = _Bucket_size - 1; // 0xFF for 8-bit, 0xFFFF for 16-bit, etc.
+    
+    constexpr std::size_t _Key_bits = sizeof(Key_t) << 3;
+    constexpr Unsigned_t _Sign_bit_mask = Unsigned_t{ 1 } << (_Key_bits - 1);
+    constexpr Unsigned_t _All_bits_mask = ~Unsigned_t{ 0 };
+
     constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
 
     /*static */std::array<std::size_t, _Bucket_size> _Bucket_count;
@@ -128,10 +133,7 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
             Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
             if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
-                if constexpr (sizeof(Key_t) == 4)
-                    _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
-                else if constexpr (sizeof(Key_t) == 8)
-                    _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
             }
 
             std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -153,10 +155,7 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
             Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
             if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
-                if constexpr (sizeof(Key_t) == 4)
-                    _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
-                else if constexpr (sizeof(Key_t) == 8)
-                    _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
             }
 
             std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -181,23 +180,10 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
 
         if constexpr (_Has_negative == Signedness::Signed && std::is_signed_v<Key_t>) {
             if constexpr (std::is_floating_point_v<Key_t>) {
-                // Invert the most significant bit (sign bit)
-                // 
-                //_Unsigned_value ^= (_Unsigned_value >> ((sizeof(Key_t) << 3) - 1)) == 0
-                //      ? Unsigned_t{ 1 } << ((sizeof(Key_t) << 3) - 1) 
-                //      : ~Unsigned_t{ 0 };
-                if constexpr (sizeof(Key_t) == 4)
-                    _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
-                else if constexpr (sizeof(Key_t) == 8)
-                    _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
-                // long double is not supported
+                _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
             }
             else {
-                //_Unsigned_value ^= Unsigned_t{ 1 } << ((sizeof(Key_t) << 3) - 1);
-                if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                _Unsigned_value ^= _Sign_bit_mask;
             }
         }
 
@@ -237,16 +223,10 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
 
         if constexpr (_Has_negative == Signedness::Signed && std::is_signed_v<Key_t>) {
             if constexpr (std::is_floating_point_v<Key_t>) {
-                if constexpr (sizeof(Key_t) == 4)
-                    _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
-                else if constexpr (sizeof(Key_t) == 8)
-                    _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
             }
             else {
-                if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                _Unsigned_value ^= _Sign_bit_mask;
             }
         }
 
@@ -293,6 +273,11 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
     constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
     constexpr std::uint8_t _Shift = _Bucket_size == 256U ? 3 : 4;
     constexpr std::uint16_t _Mask = _Bucket_size - 1;
+
+    constexpr std::size_t _Key_bits = sizeof(Key_t) << 3;
+    constexpr Unsigned_t _Sign_bit_mask = Unsigned_t{ 1 } << (_Key_bits - 1);
+    constexpr Unsigned_t _All_bits_mask = ~Unsigned_t{ 0 };
+
     constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
 
     const std::int32_t _Hardware_concurrency = omp_get_num_procs();
@@ -349,11 +334,8 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
                 for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
                     Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
-                    if constexpr (std::is_floating_point_v<Key_t>) {
-                        if constexpr (sizeof(Key_t) == 4)
-                            _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
-                        else if constexpr (sizeof(Key_t) == 8)
-                            _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                    if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
+                        _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
                     }
 
                     std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -433,11 +415,8 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
                     auto _Value = std::move(_Start[_Idx]);
                     Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
-                    if constexpr (std::is_floating_point_v<Key_t>) {
-                        if constexpr (sizeof(Key_t) == 4)
-                            _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
-                        else if constexpr (sizeof(Key_t) == 8)
-                            _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                    if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
+                        _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
                     }
 
                     std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -474,18 +453,12 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
             for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
                 Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
-                if constexpr (std::is_signed_v<Key_t>) {
+                if constexpr (_Has_negative == Signedness::Signed && std::is_signed_v<Key_t>) {
                     if constexpr (std::is_floating_point_v<Key_t>) {
-                        if constexpr (sizeof(Key_t) == 4)
-                            _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
-                        else if constexpr (sizeof(Key_t) == 8)
-                            _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                        _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
                     }
                     else {
-                        if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                        else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                        else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                        else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                        _Unsigned_value ^= _Sign_bit_mask;
                     }
                 }
 
@@ -573,18 +546,12 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
                 auto _Value = std::move(_Start[_Idx]);
                 Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
-                if constexpr (std::is_signed_v<Key_t>) {
+                if constexpr (_Has_negative == Signedness::Signed && std::is_signed_v<Key_t>) {
                     if constexpr (std::is_floating_point_v<Key_t>) {
-                        if constexpr (sizeof(Key_t) == 4)
-                            _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
-                        else if constexpr (sizeof(Key_t) == 8)
-                            _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                        _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
                     }
                     else {
-                        if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                        else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                        else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                        else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                        _Unsigned_value ^= _Sign_bit_mask;
                     }
                 }
 
