@@ -6,16 +6,35 @@
 #include <iostream>
 #include <fstream>
 #include <regex>
-auto generate_vec_data = [](size_t n, auto min_val, auto max_val) static ->std::vector<decltype(min_val)> {
+template<typename T>
+auto generate_vec_data(size_t n, T min_val, T max_val) -> std::vector<T> {
     if (n < 1) return {};
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<decltype(min_val)> dist(min_val, max_val);
 
-    std::vector<decltype(min_val)> data(n);
-    for (auto & val : data) val = dist(gen);
-    return data;
-};
+    if constexpr (std::is_integral_v<T>) {
+        if constexpr (sizeof(T) == 1) {
+            std::uniform_int_distribution<int> dist(static_cast<int>(min_val), static_cast<int>(max_val));
+            std::vector<T> data(n);
+            for (auto& val : data) {
+                val = static_cast<T>(dist(gen));
+            }
+            return data;
+        }
+        else {
+            std::uniform_int_distribution<T> dist(min_val, max_val);
+            std::vector<T> data(n);
+            for (auto& val : data) val = dist(gen);
+            return data;
+        }
+    }
+    else {
+        std::uniform_real_distribution<T> dist(min_val, max_val);
+        std::vector<T> data(n);
+        for (auto& val : data) val = dist(gen);
+        return data;
+    }
+}
 
 template<typename T>
 void serialize_vectors(const std::vector<std::vector<T>>& vectors,

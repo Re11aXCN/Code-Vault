@@ -1,4 +1,13 @@
-﻿#pragma once
+﻿// 测试不同并行策略下的基数排序不同版本的性能
+// v1 计算前缀和采取外层遍历桶，内层遍历核心
+// v2 v1版本循环展开
+// v3 计算前缀和采取内层遍历核心，外层遍历桶，  其次
+// v4 v3版本循环展开
+// v1~v4 都是都是参考seq版本同一思想策略实现
+// 
+// v5 三阶段方法（全局归约→全局前缀→本地偏移），最优版本
+
+#pragma once
 #include <benchmark/benchmark.h>
 #include <type_traits>
 #include <vector>
@@ -961,57 +970,43 @@ void radix_sort_v6(std::execution::parallel_policy, ContigIter _First, ContigIte
     }
     if constexpr (_Passes & 1) std::move(_Start, _Start + _Size, _Ptr);
 }
-
-template<typename SortFunction>
-void BM_RadixSort(benchmark::State& state) {
+// 模板化的并行基准测试函数
+template<typename T, typename SortFunction, bool Ascending = true>
+void BM_ParallelSort_Typed_Helper(benchmark::State& state) {
     auto size = state.range(0);
-    auto test_data = generate_vec_data(size, INT_MIN, INT_MAX);
 
-    for (auto _ : state) {
-        state.PauseTiming(); // 暂停计时
-        auto temp = test_data; // 复制测试数据
-        state.ResumeTiming(); // 恢复计时
-
-        using Iter_t = decltype(temp.begin());
-        using Value_t = std::iter_value_t<Iter_t>;
-
-        SortFunction{}(temp.begin(), temp.end(), std::less<>{},
-            identity_key_extractor<Value_t>{});
-
-        // 确保结果正确（可选）
-        benchmark::DoNotOptimize(temp.data());
+    // 根据类型选择适当的范围
+    T min_val, max_val;
+    if constexpr (std::is_same_v<T, int32_t>) {
+        min_val = std::numeric_limits<T>::min();
+        max_val = std::numeric_limits<T>::max();
+    }
+    else if constexpr (std::is_same_v<T, uint32_t>) {
+        min_val = std::numeric_limits<T>::min();
+        max_val = std::numeric_limits<T>::max();
+    }
+    else if constexpr (std::is_same_v<T, int64_t>) {
+        min_val = std::numeric_limits<T>::min();
+        max_val = std::numeric_limits<T>::max();
+    }
+    else if constexpr (std::is_same_v<T, uint64_t>) {
+        min_val = std::numeric_limits<T>::min();
+        max_val = std::numeric_limits<T>::max();
+    }
+    else if constexpr (std::is_same_v<T, float>) {
+        min_val = (float)std::numeric_limits<int32_t>::min();
+        max_val = (float)std::numeric_limits<int32_t>::max();
+    }
+    else if constexpr (std::is_same_v<T, double>) {
+        min_val = (double)std::numeric_limits<int64_t>::min();
+        max_val = (double)std::numeric_limits<int64_t>::max();
+    }
+    else {
+        min_val = std::numeric_limits<T>::min();
+        max_val = std::numeric_limits<T>::max();
     }
 
-    state.SetBytesProcessed(state.iterations() * size * sizeof(int));
-    state.SetComplexityN(size);
-}
-
-// 为每个版本创建 benchmark
-void BM_RadixSort_v1(benchmark::State& state) {
-    auto size = state.range(0);
-    auto test_data = generate_vec_data(size, INT_MIN, INT_MAX);
-
-    for (auto _ : state) {
-        state.PauseTiming();
-        auto temp = test_data;
-        state.ResumeTiming();
-
-        using Iter_t = decltype(temp.begin());
-        using Value_t = std::iter_value_t<Iter_t>;
-
-        radix_sort_v1<Iter_t, std::less<>, identity_key_extractor<Value_t>, 256U>(std::execution::par,
-            temp.begin(), temp.end(), {});
-
-        benchmark::DoNotOptimize(temp.data());
-    }
-
-    state.SetBytesProcessed(state.iterations() * size * sizeof(int));
-    state.SetComplexityN(size);
-}
-
-void BM_RadixSort_v2(benchmark::State& state) {
-    auto size = state.range(0);
-    auto test_data = generate_vec_data(size, INT_MIN, INT_MAX);
+    const auto& test_data = generate_vec_data<T>(size, min_val, max_val);
 
     for (auto _ : state) {
         state.PauseTiming();
@@ -1019,114 +1014,129 @@ void BM_RadixSort_v2(benchmark::State& state) {
         state.ResumeTiming();
 
         using Iter_t = decltype(temp.begin());
-        using Value_t = std::iter_value_t<Iter_t>;
+        using Value_t = T;
 
-        radix_sort_v2<Iter_t, std::less<>, identity_key_extractor<Value_t>, 256U>(std::execution::par,
-            temp.begin(), temp.end(), {});
+        if constexpr (Ascending) {
+            SortFunction{}(temp.begin(), temp.end(), std::less<>{},
+                identity_key_extractor<Value_t>{});
+        }
+        else {
+            SortFunction{}(temp.begin(), temp.end(), std::greater<>{},
+                identity_key_extractor<Value_t>{});
+        }
 
-        benchmark::DoNotOptimize(temp.data());
-    }
-
-    state.SetBytesProcessed(state.iterations() * size * sizeof(int));
-    state.SetComplexityN(size);
-}
-
-void BM_RadixSort_v3(benchmark::State& state) {
-    auto size = state.range(0);
-    auto test_data = generate_vec_data(size, INT_MIN, INT_MAX);
-
-    for (auto _ : state) {
-        state.PauseTiming();
-        auto temp = test_data;
-        state.ResumeTiming();
-
-        using Iter_t = decltype(temp.begin());
-        using Value_t = std::iter_value_t<Iter_t>;
-
-        radix_sort_v3<Iter_t, std::less<>, identity_key_extractor<Value_t>, 256U>(std::execution::par,
-            temp.begin(), temp.end(), {});
+        // 验证排序正确性（只在调试时开启）
+#ifdef DEBUG_SORT
+        if (!is_sorted_correctly(temp, Ascending)) {
+            state.SkipWithError("Sorting failed!");
+        }
+#endif
 
         benchmark::DoNotOptimize(temp.data());
     }
 
-    state.SetBytesProcessed(state.iterations() * size * sizeof(int));
+    state.SetBytesProcessed(state.iterations() * size * sizeof(T));
     state.SetComplexityN(size);
 }
 
-void BM_RadixSort_v4(benchmark::State& state) {
-    auto size = state.range(0);
-    auto test_data = generate_vec_data(size, INT_MIN, INT_MAX);
-
-    for (auto _ : state) {
-        state.PauseTiming();
-        auto temp = test_data;
-        state.ResumeTiming();
-
-        using Iter_t = decltype(temp.begin());
-        using Value_t = std::iter_value_t<Iter_t>;
-
-        radix_sort_v4<Iter_t, std::less<>, identity_key_extractor<Value_t>, 256U>(std::execution::par,
-            temp.begin(), temp.end(), {});
-
-        benchmark::DoNotOptimize(temp.data());
+// 并行排序函数包装器
+struct ParallelRadixSortV1Wrapper {
+    template<typename Iter, typename Compare, typename Extractor>
+    void operator()(Iter first, Iter last, Compare comp, Extractor&& extractor) {
+        radix_sort_v1<Iter, Compare, Extractor, 256U>(
+            std::execution::par, first, last, std::forward<Extractor>(extractor));
     }
+};
 
-    state.SetBytesProcessed(state.iterations() * size * sizeof(int));
-    state.SetComplexityN(size);
-}
-
-void BM_RadixSort_v5(benchmark::State& state) {
-    auto size = state.range(0);
-    auto test_data = generate_vec_data(size, INT_MIN, INT_MAX);
-
-    for (auto _ : state) {
-        state.PauseTiming();
-        auto temp = test_data;
-        state.ResumeTiming();
-
-        using Iter_t = decltype(temp.begin());
-        using Value_t = std::iter_value_t<Iter_t>;
-
-        radix_sort_v5<Iter_t, std::less<>, identity_key_extractor<Value_t>, 256U>(std::execution::par,
-            temp.begin(), temp.end(), {});
-
-        benchmark::DoNotOptimize(temp.data());
+struct ParallelRadixSortV2Wrapper {
+    template<typename Iter, typename Compare, typename Extractor>
+    void operator()(Iter first, Iter last, Compare comp, Extractor&& extractor) {
+        radix_sort_v2<Iter, Compare, Extractor, 256U>(
+            std::execution::par, first, last, std::forward<Extractor>(extractor));
     }
+};
 
-    state.SetBytesProcessed(state.iterations() * size * sizeof(int));
-    state.SetComplexityN(size);
-}
+struct ParallelRadixSortV3Wrapper {
+    template<typename Iter, typename Compare, typename Extractor>
+    void operator()(Iter first, Iter last, Compare comp, Extractor&& extractor) {
+        radix_sort_v3<Iter, Compare, Extractor, 256U>(
+            std::execution::par, first, last, std::forward<Extractor>(extractor));
+    }
+};
 
-// 注册 benchmark，测试不同的数据大小
-BENCHMARK(BM_RadixSort_v1)
-->RangeMultiplier(2)
-->Range(1 << 10, 1 << 20)  // 从 1024 到 1048576 个元素
-->Unit(benchmark::kMillisecond)
-->Complexity();
+struct ParallelRadixSortV4Wrapper {
+    template<typename Iter, typename Compare, typename Extractor>
+    void operator()(Iter first, Iter last, Compare comp, Extractor&& extractor) {
+        radix_sort_v4<Iter, Compare, Extractor, 256U>(
+            std::execution::par, first, last, std::forward<Extractor>(extractor));
+    }
+};
 
-BENCHMARK(BM_RadixSort_v2)
-->RangeMultiplier(2)
-->Range(1 << 10, 1 << 20)
-->Unit(benchmark::kMillisecond)
-->Complexity();
+struct ParallelRadixSortV5Wrapper {
+    template<typename Iter, typename Compare, typename Extractor>
+    void operator()(Iter first, Iter last, Compare comp, Extractor&& extractor) {
+        radix_sort_v5<Iter, Compare, Extractor, 256U>(
+            std::execution::par, first, last, std::forward<Extractor>(extractor));
+    }
+};
 
-BENCHMARK(BM_RadixSort_v3)
-->RangeMultiplier(2)
-->Range(1 << 10, 1 << 20)
-->Unit(benchmark::kMillisecond)
-->Complexity();
+struct ParallelStdSortWrapper {
+    template<typename Iter, typename Compare, typename Extractor>
+    void operator()(Iter first, Iter last, Compare comp, Extractor&& extractor) {
+        // 使用并行版本的 std::sort
+        std::sort(std::execution::par, first, last, comp);
+    }
+};
 
-BENCHMARK(BM_RadixSort_v4)
-->RangeMultiplier(2)
-->Range(1 << 10, 1 << 20)
-->Unit(benchmark::kMillisecond)
-->Complexity();
+// 32位类型并行测试
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int32_t, ParallelRadixSortV1Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
 
-BENCHMARK(BM_RadixSort_v5)
-->RangeMultiplier(2)
-->Range(1 << 10, 1 << 20)
-->Unit(benchmark::kMillisecond)
-->Complexity();
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int32_t, ParallelRadixSortV2Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int32_t, ParallelRadixSortV3Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int32_t, ParallelRadixSortV4Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int32_t, ParallelRadixSortV5Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int32_t, ParallelStdSortWrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+// 64位类型并行测试
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int64_t, ParallelRadixSortV1Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int64_t, ParallelRadixSortV2Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int64_t, ParallelRadixSortV3Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int64_t, ParallelRadixSortV4Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int64_t, ParallelRadixSortV5Wrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
+
+BENCHMARK_TEMPLATE(BM_ParallelSort_Typed_Helper, int64_t, ParallelStdSortWrapper, true)
+->RangeMultiplier(2)->Range(1 << 10, 1 << 20)
+->Unit(benchmark::kMillisecond)->Complexity();
 
 BENCHMARK_MAIN();
 

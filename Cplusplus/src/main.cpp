@@ -9,7 +9,6 @@
 #include <unistd.h>
 #endif
 #include <experimental/generator>
-
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_invoke.h>
 #include <tbb/parallel_sort.h>
@@ -23,7 +22,6 @@
 #include "parallel/avx_filter.hpp"
 #include "leetcode/0048_rotate_image.h"
 #include "leetcode/0912_sort_array.h"
-
 
 int main() {
     using namespace std::literals;

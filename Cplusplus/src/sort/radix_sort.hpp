@@ -1,6 +1,6 @@
 ﻿// This is a header-only library that provides the implementation of radix sort algorithm in C++ 20.
 // 
-// <Time complexity: O(8N or 4N or 2N) , Space complexity: O(N + 2 * _Bucket_size)>
+// <Time complexity: O( 2 * (8N or 4N or 2N) ) , Space complexity: O(N + 2 * _Bucket_size)>
 // It depends on the number of bytes of the type and the _Bucket_size settings - 256 or 65536.
 // 
 // The code is based on the following 
@@ -20,6 +20,11 @@
 #include <bit>
 #include <execution>
 #include <omp.h>
+
+enum class Signedness {
+    Signed,     // 数据可能包含负数（默认）
+    Unsigned    // 数据确定没有负数, 则可以开启此选项以提高性能，有符号类型处理速度等效于无符号类型，如果数据有负数，则排序结果可能不正确
+};
 
 template <typename T>
 struct is_execution_policy : std::false_type {};
@@ -68,9 +73,9 @@ struct function_key_extractor {
     }
 };
 
-template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size>
-    requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
-              (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
+template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size, Signedness _Has_negative>
+requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
+        (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
 void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, ContigIter _Last, KeyExtractor&& _Extractor)
 {
     static_assert(std::contiguous_iterator<ContigIter>,
@@ -111,7 +116,7 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
     Value_t* _Start = _Ptr;
     Value_t* _End = _Buffer.data();
 #endif
-    for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
+    for (std::uint8_t _Pass = 0; _Pass < _Passes - 1; ++_Pass) {
         std::fill(_Bucket_count.begin(), _Bucket_count.end(), 0);
 #if defined(__clang__)
 #pragma clang loop unroll_count(8)
@@ -119,84 +124,141 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
 #pragma GCC unroll 8
 #elif defined(_MSC_VER)
 #endif
-        // Count the number of elements per bucket
         for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
             Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
-            if constexpr (std::is_signed_v<Key_t>) {
-                if constexpr (std::is_floating_point_v<Key_t>) {
-                    // Invert the most significant bit (sign bit)
-                    if constexpr (sizeof(Key_t) == 4)
-                        _Unsigned_value ^= (_Unsigned_value & 0x8000'0000U) ? 0xFFFF'FFFFU : 0x8000'0000U;
-                    else
-                        _Unsigned_value ^= (_Unsigned_value & 0x8000'0000'0000'0000ULL) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
-                }
-                else {
-                    if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                    else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                    else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                    else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
-                }
+            if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
+                if constexpr (sizeof(Key_t) == 4)
+                    _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
+                else if constexpr (sizeof(Key_t) == 8)
+                    _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
             }
 
             std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
-
             if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
-
             ++_Bucket_count[_Byte_idx];
         }
-#if __cplusplus < 201703L
-        _Scanned[0] = 0;
-#if defined(__clang__)
-#pragma clang loop unroll_count(8)
-#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
-#pragma GCC unroll 8
-#elif defined(_MSC_VER)
-#endif
-        // Calculate the sum of prefixes by exclusive scan
-        for (std::uint32_t _Idx = 1; _Idx < _Bucket_size; ++_Idx) {
-            std::uint32_t _Prev_idx = _Idx - 1;
-            _Scanned[_Idx] = _Scanned[_Prev_idx] + _Bucket_count[_Prev_idx];
-        }
-#else
+
         std::exclusive_scan(_Bucket_count.begin(), _Bucket_count.end(),
             _Scanned.begin(), 0, std::plus<>{});
-#endif
+
 #if defined(__clang__)
 #pragma clang loop unroll_count(8)
 #elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
 #pragma GCC unroll 8
 #elif defined(_MSC_VER)
 #endif
-        // Move elements to their final positions
         for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
             auto _Value = std::move(_Start[_Idx]);
             Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
-            if constexpr (std::is_signed_v<Key_t>) {
-                if constexpr (std::is_floating_point_v<Key_t>) {
-                    if constexpr (sizeof(Key_t) == 4)
-                        _Unsigned_value ^= (_Unsigned_value & 0x8000'0000U) ? 0xFFFF'FFFFU : 0x8000'0000U;
-                    else
-                        _Unsigned_value ^= (_Unsigned_value & 0x8000'0000'0000'0000ULL) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
-                }
-                else {
-                    if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                    else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                    else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                    else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
-                }
+            if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
+                if constexpr (sizeof(Key_t) == 4)
+                    _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
+                else if constexpr (sizeof(Key_t) == 8)
+                    _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
             }
 
             std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
-
             if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
-
             _End[_Scanned[_Byte_idx]++] = std::move(_Value);
         }
-        // Swap buffer
         std::swap(_Start, _End);
     }
+
+    // Signed Last Pass
+    // ^^^^^^
+    std::fill(_Bucket_count.begin(), _Bucket_count.end(), 0);
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+    // Count the number of elements per bucket
+    for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
+        Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
+
+        if constexpr (_Has_negative == Signedness::Signed && std::is_signed_v<Key_t>) {
+            if constexpr (std::is_floating_point_v<Key_t>) {
+                // Invert the most significant bit (sign bit)
+                // 
+                //_Unsigned_value ^= (_Unsigned_value >> ((sizeof(Key_t) << 3) - 1)) == 0
+                //      ? Unsigned_t{ 1 } << ((sizeof(Key_t) << 3) - 1) 
+                //      : ~Unsigned_t{ 0 };
+                if constexpr (sizeof(Key_t) == 4)
+                    _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
+                else if constexpr (sizeof(Key_t) == 8)
+                    _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                // long double is not supported
+            }
+            else {
+                //_Unsigned_value ^= Unsigned_t{ 1 } << ((sizeof(Key_t) << 3) - 1);
+                if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+            }
+        }
+
+        std::uint16_t _Byte_idx = (_Unsigned_value >> ((_Passes - 1) << _Shift)) & _Mask;
+
+        if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+
+        ++_Bucket_count[_Byte_idx];
+    }
+#if __cplusplus < 201703L
+    _Scanned[0] = 0;
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+    // Calculate the sum of prefixes by exclusive scan
+    for (std::uint32_t _Idx = 1; _Idx < _Bucket_size; ++_Idx) {
+        std::uint32_t _Prev_idx = _Idx - 1;
+        _Scanned[_Idx] = _Scanned[_Prev_idx] + _Bucket_count[_Prev_idx];
+    }
+#else
+    std::exclusive_scan(_Bucket_count.begin(), _Bucket_count.end(),
+        _Scanned.begin(), 0, std::plus<>{});
+#endif
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+    // Move elements to their final positions
+    for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
+        auto _Value = std::move(_Start[_Idx]);
+        Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
+
+        if constexpr (_Has_negative == Signedness::Signed && std::is_signed_v<Key_t>) {
+            if constexpr (std::is_floating_point_v<Key_t>) {
+                if constexpr (sizeof(Key_t) == 4)
+                    _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
+                else if constexpr (sizeof(Key_t) == 8)
+                    _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+            }
+            else {
+                if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+            }
+        }
+
+        std::uint16_t _Byte_idx = (_Unsigned_value >> ((_Passes - 1) << _Shift)) & _Mask;
+
+        if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+
+        _End[_Scanned[_Byte_idx]++] = std::move(_Value);
+    }
+    // Swap buffer
+    std::swap(_Start, _End);
+
     // Note that _Buffer is a temporary variable, using copy_n not swap
     // If passes is ODD, we need to copy the data back to the original array
     // But passes is EVEN, we already have the data in the buffer
@@ -204,9 +266,9 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
     if constexpr (_Passes & 1) std::move(_Start, _Start + _Size, _Ptr);
 }
 
-template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size>
-    requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
-              (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
+template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size, Signedness _Has_negative>
+requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
+        (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
 void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigIter _Last, KeyExtractor&& _Extractor)
 {
     static_assert(std::contiguous_iterator<ContigIter>,
@@ -267,10 +329,8 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
     Value_t* _Start = _Ptr;
     Value_t* _End = _Buffer.data();
 #endif
-    for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
-        // Phase 1: 并行计数阶段
+    for (std::uint8_t _Pass = 0; _Pass < _Passes - 1; ++_Pass) {
         {
-            // 重置本地计数
             std::fill(_Local_data.begin(), _Local_data.end(), 0);
 
 #pragma omp parallel num_threads(_Actual_threads)
@@ -278,7 +338,6 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
                 const int _Thread_id = omp_get_thread_num();
                 std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread_id);
 
-                // 计算当前线程处理的区间
                 const std::size_t _Start_idx = _Thread_id * _Chunk;
                 const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
 #if defined(__clang__)
@@ -287,23 +346,14 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
 #pragma GCC unroll 8
 #elif defined(_MSC_VER)
 #endif
-                // 本地计数
                 for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
                     Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
-                    if constexpr (std::is_signed_v<Key_t>) {
-                        if constexpr (std::is_floating_point_v<Key_t>) {
-                            if constexpr (sizeof(Key_t) == 4)
-                                _Unsigned_value ^= (_Unsigned_value & 0x8000'0000U) ? 0xFFFF'FFFFU : 0x8000'0000U;
-                            else
-                                _Unsigned_value ^= (_Unsigned_value & 0x8000'0000'0000'0000ULL) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
-                        }
-                        else {
-                            if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                            else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                            else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                            else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
-                        }
+                    if constexpr (std::is_floating_point_v<Key_t>) {
+                        if constexpr (sizeof(Key_t) == 4)
+                            _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
+                        else if constexpr (sizeof(Key_t) == 8)
+                            _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
                     }
 
                     std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -315,9 +365,7 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
             }
         }
 
-        // Phase 2: 优化的前缀和计算
         {
-            // 步骤2.1: 全局归约 - 优化内存访问模式
             std::fill(_Global_prefix.begin(), _Global_prefix.end(), 0);
 
             for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
@@ -333,7 +381,6 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
                 }
             }
 
-            // 步骤2.2: 计算全局前缀和
             std::size_t _Running_sum = 0;
 #if defined(__clang__)
 #pragma clang loop unroll_count(8)
@@ -347,7 +394,6 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
                 _Running_sum += _Current_count;
             }
 
-            // 步骤2.3: 计算本地偏移量 - 单次遍历完成
             for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
 #if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
                 std::size_t* __restrict _Local_buckets = _Func_get_local_buckets(_Thread);
@@ -369,14 +415,12 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
             }
         }
 
-        // Phase 3: 并行散射阶段
         {
 #pragma omp parallel num_threads(_Actual_threads)
             {
                 const int _Thread_id = omp_get_thread_num();
                 std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread_id);
 
-                // 计算当前线程处理的区间
                 const std::size_t _Start_idx = _Thread_id * _Chunk;
                 const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
 #if defined(__clang__)
@@ -385,37 +429,175 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
 #pragma GCC unroll 8
 #elif defined(_MSC_VER)
 #endif
-                // 散射元素到正确位置
                 for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
                     auto _Value = std::move(_Start[_Idx]);
                     Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
-                    if constexpr (std::is_signed_v<Key_t>) {
-                        if constexpr (std::is_floating_point_v<Key_t>) {
-                            if constexpr (sizeof(Key_t) == 4)
-                                _Unsigned_value ^= (_Unsigned_value & 0x8000'0000U) ? 0xFFFF'FFFFU : 0x8000'0000U;
-                            else
-                                _Unsigned_value ^= (_Unsigned_value & 0x8000'0000'0000'0000ULL) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
-                        }
-                        else {
-                            if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                            else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                            else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                            else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
-                        }
+                    if constexpr (std::is_floating_point_v<Key_t>) {
+                        if constexpr (sizeof(Key_t) == 4)
+                            _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
+                        else if constexpr (sizeof(Key_t) == 8)
+                            _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
                     }
 
                     std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
-
                     if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
-
                     _End[_Local_offsets[_Byte_idx]++] = std::move(_Value);
                 }
             }
         }
-
         std::swap(_Start, _End);
     }
+
+    // Signed Last Pass
+    // ^^^^^^
+    // Phase 1: 并行计数阶段
+    {
+        // 重置本地计数
+        std::fill(_Local_data.begin(), _Local_data.end(), 0);
+
+#pragma omp parallel num_threads(_Actual_threads)
+        {
+            const int _Thread_id = omp_get_thread_num();
+            std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread_id);
+
+            // 计算当前线程处理的区间
+            const std::size_t _Start_idx = _Thread_id * _Chunk;
+            const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            // 本地计数
+            for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
+                Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
+
+                if constexpr (std::is_signed_v<Key_t>) {
+                    if constexpr (std::is_floating_point_v<Key_t>) {
+                        if constexpr (sizeof(Key_t) == 4)
+                            _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
+                        else if constexpr (sizeof(Key_t) == 8)
+                            _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                    }
+                    else {
+                        if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                        else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                        else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                        else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                    }
+                }
+
+                std::uint16_t _Byte_idx = (_Unsigned_value >> ((_Passes - 1) << _Shift)) & _Mask;
+
+                if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+
+                ++_Local_buckets[_Byte_idx];
+            }
+        }
+    }
+
+    // Phase 2: 优化的前缀和计算
+    {
+        // 步骤2.1: 全局归约 - 优化内存访问模式
+        std::fill(_Global_prefix.begin(), _Global_prefix.end(), 0);
+
+        for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+            std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
+#if defined(__clang__)
+#pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+                _Global_prefix[_Bucket] += _Local_buckets[_Bucket];
+            }
+        }
+
+        // 步骤2.2: 计算全局前缀和
+        std::size_t _Running_sum = 0;
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+        for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+            std::size_t _Current_count = _Global_prefix[_Bucket];
+            _Global_prefix[_Bucket] = _Running_sum;
+            _Running_sum += _Current_count;
+        }
+
+        // 步骤2.3: 计算本地偏移量 - 单次遍历完成
+        for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+#if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
+            std::size_t* __restrict _Local_buckets = _Func_get_local_buckets(_Thread);
+            std::size_t* __restrict _Local_offsets = _Func_get_local_offsets(_Thread);
+#else
+            std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
+            std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread);
+#endif
+#if defined(__clang__)
+#pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+                _Local_offsets[_Bucket] = _Global_prefix[_Bucket];
+                _Global_prefix[_Bucket] += _Local_buckets[_Bucket];
+            }
+        }
+    }
+
+    // Phase 3: 并行散射阶段
+    {
+#pragma omp parallel num_threads(_Actual_threads)
+        {
+            const int _Thread_id = omp_get_thread_num();
+            std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread_id);
+
+            // 计算当前线程处理的区间
+            const std::size_t _Start_idx = _Thread_id * _Chunk;
+            const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            // 散射元素到正确位置
+            for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
+                auto _Value = std::move(_Start[_Idx]);
+                Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
+
+                if constexpr (std::is_signed_v<Key_t>) {
+                    if constexpr (std::is_floating_point_v<Key_t>) {
+                        if constexpr (sizeof(Key_t) == 4)
+                            _Unsigned_value ^= ((_Unsigned_value >> 31) == 0) ? 0x8000'0000U : 0xFFFF'FFFFU;
+                        else if constexpr (sizeof(Key_t) == 8)
+                            _Unsigned_value ^= ((_Unsigned_value >> 63) == 0) ? 0x8000'0000'0000'0000ULL : 0xFFFF'FFFF'FFFF'FFFFULL;
+                    }
+                    else {
+                        if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
+                        else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
+                        else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
+                        else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
+                    }
+                }
+
+                std::uint16_t _Byte_idx = (_Unsigned_value >> ((_Passes - 1) << _Shift)) & _Mask;
+
+                if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+
+                _End[_Local_offsets[_Byte_idx]++] = std::move(_Value);
+            }
+        }
+    }
+
+    std::swap(_Start, _End);
 
     if constexpr (_Passes & 1) std::move(_Start, _Start + _Size, _Ptr);
 }
@@ -423,10 +605,11 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
 // 带键提取器的完整版本
 template<typename ExecutionPolicy, typename ContigIter, typename Compare, typename KeyExtractor,
     std::uint32_t BucketSize = 256U,
+    Signedness HasNegative = Signedness::Signed,
     std::enable_if_t<is_execution_policy_v<std::decay_t<ExecutionPolicy>>, int> = 0>
 void radix_sort(ExecutionPolicy policy, ContigIter first, ContigIter last, Compare comp, KeyExtractor&& extractor)
 {
-    radix_sort_impl<ContigIter, Compare, KeyExtractor, BucketSize>(policy, first, last, std::forward<KeyExtractor>(extractor));
+    radix_sort_impl<ContigIter, Compare, KeyExtractor, BucketSize, HasNegative>(policy, first, last, std::forward<KeyExtractor>(extractor));
 }
 
 // 基础版本：接受比较器和执行策略
@@ -462,7 +645,7 @@ void radix_sort(ContigIter first, ContigIter last)
 template<typename ExecutionPolicy, typename ContigIter, typename KeyType, typename Compare = std::less<>>
 void radix_sort_by_member(ExecutionPolicy&& policy, ContigIter first, ContigIter last,
     KeyType (std::iter_value_t<ContigIter>::* member_ptr),
-    Compare comp = {}) 
+    Compare comp = {})
 {
     using Value_t = std::iter_value_t<ContigIter>;
     radix_sort(std::forward<ExecutionPolicy>(policy), first, last, comp, member_key_extractor<Value_t, KeyType>{member_ptr});
@@ -471,7 +654,7 @@ void radix_sort_by_member(ExecutionPolicy&& policy, ContigIter first, ContigIter
 template<typename ContigIter, typename KeyType, typename Compare = std::less<>>
 void radix_sort_by_member(ContigIter first, ContigIter last,
     KeyType (std::iter_value_t<ContigIter>::* member_ptr),
-    Compare comp = {}) 
+    Compare comp = {})
 {
     using Value_t = std::iter_value_t<ContigIter>;
     radix_sort_by_member(std::execution::seq, first, last, member_ptr, comp);
@@ -491,7 +674,163 @@ void radix_sort_by(ContigIter first, ContigIter last, Func&& func, Compare comp 
 }
 /*
 #include "tools/ticktock.h"
+#include "tools/generator.h"
+template<typename T, typename Compare>
+void test_radix_sort(const std::string& type_name, Compare comp, const std::string& order_name) {
+    std::cout << "测试类型: " << type_name << ", 排序方式: " << order_name << std::endl;
+
+    // 生成测试数据
+    auto data = generate_vec_data<T>(1000,
+        std::numeric_limits<T>::lowest() / 2 + std::numeric_limits<T>::lowest() / 4,
+        std::numeric_limits<T>::max() / 2 + std::numeric_limits<T>::max() / 4);
+
+    auto data_copy = data; // 备份用于验证
+
+    // 使用基数排序
+    radix_sort(data.begin(), data.end(), comp);
+
+    // 检查排序是否正确
+    bool is_sorted_correctly = std::is_sorted(data.begin(), data.end(), comp);
+
+    std::cout << "  基数排序结果: " << (is_sorted_correctly ? "正确" : "错误") << std::endl;
+
+    // 使用std::sort验证
+    std::sort(data_copy.begin(), data_copy.end(), comp);
+    bool matches_std_sort = (data == data_copy);
+
+    std::cout << "  与std::sort结果一致: " << (matches_std_sort ? "是" : "否") << std::endl;
+    std::cout << "  ---------------------------------" << std::endl;
+}
+
+// 特殊处理uint8_t/int8_t（因为numeric_limits的问题）
+template<>
+void test_radix_sort<uint8_t, std::less<uint8_t>>(const std::string& type_name, std::less<uint8_t> comp, const std::string& order_name) {
+    std::cout << "测试类型: " << type_name << ", 排序方式: " << order_name << std::endl;
+
+    auto data = generate_vec_data<uint8_t>(1000, 0, 255);
+    auto data_copy = data;
+
+    radix_sort(data.begin(), data.end(), std::less<>{});
+
+    bool is_sorted_correctly = std::is_sorted(data.begin(), data.end(), std::less<>{});
+    std::cout << "  基数排序结果: " << (is_sorted_correctly ? "正确" : "错误") << std::endl;
+
+    std::sort(data_copy.begin(), data_copy.end(), std::less<>{});
+    bool matches_std_sort = (data == data_copy);
+    std::cout << "  与std::sort结果一致: " << (matches_std_sort ? "是" : "否") << std::endl;
+    std::cout << "  ---------------------------------" << std::endl;
+}
+
+template<>
+void test_radix_sort<int8_t, std::less<int8_t>>(const std::string& type_name, std::less<int8_t> comp, const std::string& order_name) {
+    std::cout << "测试类型: " << type_name << ", 排序方式: " << order_name << std::endl;
+
+    auto data = generate_vec_data<int8_t>(1000, -128, 127);
+    auto data_copy = data;
+
+    radix_sort(data.begin(), data.end(), std::less<>{});
+
+    bool is_sorted_correctly = std::is_sorted(data.begin(), data.end(), std::less<>{});
+    std::cout << "  基数排序结果: " << (is_sorted_correctly ? "正确" : "错误") << std::endl;
+
+    std::sort(data_copy.begin(), data_copy.end(), std::less<>{});
+    bool matches_std_sort = (data == data_copy);
+    std::cout << "  与std::sort结果一致: " << (matches_std_sort ? "是" : "否") << std::endl;
+    std::cout << "  ---------------------------------" << std::endl;
+}
+
+template<>
+void test_radix_sort<uint8_t, std::greater<uint8_t>>(const std::string& type_name, std::greater<uint8_t> comp, const std::string& order_name) {
+    std::cout << "测试类型: " << type_name << ", 排序方式: " << order_name << std::endl;
+
+    auto data = generate_vec_data<uint8_t>(1000, 0, 255);
+    auto data_copy = data;
+
+    radix_sort(data.begin(), data.end(), std::greater<>{});
+
+    bool is_sorted_correctly = std::is_sorted(data.begin(), data.end(), std::greater<>{});
+    std::cout << "  基数排序结果: " << (is_sorted_correctly ? "正确" : "错误") << std::endl;
+
+    std::sort(data_copy.begin(), data_copy.end(), std::greater<>{});
+    bool matches_std_sort = (data == data_copy);
+    std::cout << "  与std::sort结果一致: " << (matches_std_sort ? "是" : "否") << std::endl;
+    std::cout << "  ---------------------------------" << std::endl;
+}
+
+template<>
+void test_radix_sort<int8_t, std::greater<int8_t>>(const std::string& type_name, std::greater<int8_t> comp, const std::string& order_name) {
+    std::cout << "测试类型: " << type_name << ", 排序方式: " << order_name << std::endl;
+
+    auto data = generate_vec_data<int8_t>(1000, -128, 127);
+    auto data_copy = data;
+
+    radix_sort(data.begin(), data.end(), std::greater<>{});
+
+    bool is_sorted_correctly = std::is_sorted(data.begin(), data.end(), std::greater<>{});
+    std::cout << "  基数排序结果: " << (is_sorted_correctly ? "正确" : "错误") << std::endl;
+
+    std::sort(data_copy.begin(), data_copy.end(), std::greater<>{});
+    bool matches_std_sort = (data == data_copy);
+    std::cout << "  与std::sort结果一致: " << (matches_std_sort ? "是" : "否") << std::endl;
+    std::cout << "  ---------------------------------" << std::endl;
+}
+
 int radix_sort_test() {
+    std::cout.setf(std::ios_base::boolalpha);
+        std::cout << "开始基数排序测试..." << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    // 测试 int8_t
+    {
+        test_radix_sort<int8_t>("int8_t", std::less<>{}, "升序");
+        test_radix_sort<int8_t>("int8_t", std::greater<>{}, "降序");
+    }
+
+    // 测试 uint8_t
+    {
+        test_radix_sort<uint8_t>("uint8_t", std::less<>{}, "升序");
+        test_radix_sort<uint8_t>("uint8_t", std::greater<>{}, "降序");
+    }
+
+    // 测试 int32_t
+    {
+        test_radix_sort<int32_t>("int32_t", std::less<>{}, "升序");
+        test_radix_sort<int32_t>("int32_t", std::greater<>{}, "降序");
+    }
+
+    // 测试 uint32_t
+    {
+        test_radix_sort<uint32_t>("uint32_t", std::less<>{}, "升序");
+        test_radix_sort<uint32_t>("uint32_t", std::greater<>{}, "降序");
+    }
+
+    // 测试 int64_t
+    {
+        test_radix_sort<int64_t>("int64_t", std::less<>{}, "升序");
+        test_radix_sort<int64_t>("int64_t", std::greater<>{}, "降序");
+    }
+
+    // 测试 uint64_t
+    {
+        test_radix_sort<uint64_t>("uint64_t", std::less<>{}, "升序");
+        test_radix_sort<uint64_t>("uint64_t", std::greater<>{}, "降序");
+    }
+
+    // 测试 float
+    {
+        test_radix_sort<float>("float", std::less<>{}, "升序");
+        test_radix_sort<float>("float", std::greater<>{}, "降序");
+    }
+
+    // 测试 double
+    {
+        test_radix_sort<double>("double", std::less<>{}, "升序");
+        test_radix_sort<double>("double", std::greater<>{}, "降序");
+    }
+
+    std::cout << "========================================" << std::endl;
+    std::cout << "基数排序测试完成!" << std::endl;
+
     struct Point {
         int x;
         float y;
