@@ -1,4 +1,5 @@
-﻿#include "header.h"
+﻿#define _CRT_SECURE_NO_WARNINGS
+#include "header.h"
 #include <boost/container/small_vector.hpp>
 #ifdef _WIN32
 #include <windows.h>
@@ -22,7 +23,8 @@
 #include "parallel/avx_filter.hpp"
 #include "leetcode/0048_rotate_image.h"
 #include "leetcode/0912_sort_array.h"
-
+#include "math/isomath.hpp"
+#include "stdex/scope.h"
 int main() {
     using namespace std::literals;
     std::cout.setf(std::ios_base::boolalpha);
