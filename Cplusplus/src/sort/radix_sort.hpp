@@ -26,6 +26,17 @@ enum class Signedness {
     Unsigned    // 数据确定没有负数, 则可以开启此选项以提高性能，有符号类型处理速度等效于无符号类型，如果数据有负数，则排序结果可能不正确
 };
 
+enum class NaNPosition {
+    //< Temp: {INFINITY, -INFINITY, NAN, 1.0f / 1.0f, -1.0f / 1.0f, std::sqrt(-1.0f), 3.14f}
+
+    //< -nan(ind) always ahead, nan always behind
+    Unhandled,  // -nan(ind) -inf -1 1 3.14 inf nan
+
+    //< -nan(ind)/nan order is uncertain, but they are always behind/ahead of other values
+    AtStart,    // nan -nan(ind) -inf -1 1 3.14 inf
+    AtEnd       // -inf -1 1 3.14 inf -nan(ind) nan
+};
+
 template <typename T>
 struct is_execution_policy : std::false_type {};
 
@@ -73,7 +84,7 @@ struct function_key_extractor {
     }
 };
 
-template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size, Signedness _Has_negative>
+template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size, Signedness _Has_negative, NaNPosition _NaN_position>
 requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
         (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
 void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, ContigIter _Last, KeyExtractor&& _Extractor)
@@ -109,6 +120,7 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
     constexpr Unsigned_t _All_bits_mask = ~Unsigned_t{ 0 };
 
     constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
+    [[maybe_unused]] std::size_t _NaN_count = 0;
 
     /*static */std::array<std::size_t, _Bucket_size> _Bucket_count;
     /*static */std::array<std::size_t, _Bucket_size> _Scanned;
@@ -133,7 +145,7 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
             Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
             if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
-                _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
+                if (_Unsigned_value >> (_Key_bits - 1)) _Unsigned_value ^= _All_bits_mask;
             }
 
             std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -155,7 +167,7 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
             Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
             if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
-                _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
+                if (_Unsigned_value >> (_Key_bits - 1)) _Unsigned_value ^= _All_bits_mask;
             }
 
             std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -176,7 +188,12 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
 #endif
     // Count the number of elements per bucket
     for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
-        Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
+        auto _Key = _Extractor(_Start[_Idx]);
+
+        if constexpr (_NaN_position != NaNPosition::Unhandled && std::is_floating_point_v<Key_t>) {
+            if (std::isnan(_Key)) { ++_NaN_count; continue; }
+        }
+        Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Key);
 
         if constexpr (_Has_negative == Signedness::Signed && std::is_signed_v<Key_t>) {
             if constexpr (std::is_floating_point_v<Key_t>) {
@@ -207,8 +224,14 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
         _Scanned[_Idx] = _Scanned[_Prev_idx] + _Bucket_count[_Prev_idx];
     }
 #else
-    std::exclusive_scan(_Bucket_count.begin(), _Bucket_count.end(),
-        _Scanned.begin(), 0, std::plus<>{});
+    if constexpr (_NaN_position == NaNPosition::AtStart && std::is_floating_point_v<Key_t>) {
+        std::exclusive_scan(_Bucket_count.begin(), _Bucket_count.end(),
+            _Scanned.begin(), _NaN_count, std::plus<>{});
+    }
+    else {
+        std::exclusive_scan(_Bucket_count.begin(), _Bucket_count.end(),
+            _Scanned.begin(), 0, std::plus<>{});
+    }
 #endif
 #if defined(__clang__)
 #pragma clang loop unroll_count(8)
@@ -219,7 +242,21 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
     // Move elements to their final positions
     for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
         auto _Value = std::move(_Start[_Idx]);
-        Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
+        auto _Key = _Extractor(_Value);
+
+        if constexpr (_NaN_position != NaNPosition::Unhandled && std::is_floating_point_v<Key_t>) {
+            if (std::isnan(_Key)) {
+                if constexpr (_NaN_position == NaNPosition::AtStart) {
+                    _End[--_NaN_count] = std::move(_Value);
+                }
+                else if constexpr (_NaN_position == NaNPosition::AtEnd) {
+                    _End[_Size - _NaN_count--] = std::move(_Value);
+                }
+                continue;
+            }
+        }
+
+        Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Key);
 
         if constexpr (_Has_negative == Signedness::Signed && std::is_signed_v<Key_t>) {
             if constexpr (std::is_floating_point_v<Key_t>) {
@@ -246,7 +283,347 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter _First, Contig
     if constexpr (_Passes & 1) std::move(_Start, _Start + _Size, _Ptr);
 }
 
-template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size, Signedness _Has_negative>
+template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size, Signedness _Has_negative, NaNPosition _NaN_position>
+requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
+        (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>) &&
+        (_NaN_position == NaNPosition::AtStart || _NaN_position == NaNPosition::AtEnd))
+void radix_sort_impl_floating_point_NaN(std::execution::parallel_policy, ContigIter _First, ContigIter _Last, KeyExtractor&& _Extractor)
+{
+    static_assert(std::contiguous_iterator<ContigIter>,
+        "Radix sort requires contiguous iterators (vector, array, raw pointers)");
+
+    using Value_t = typename std::iterator_traits<ContigIter>::value_type;
+
+    using Key_t = std::decay_t<decltype(_Extractor(std::declval<Value_t>()))>;
+    static_assert(std::is_floating_point_v<Key_t>,
+        "Specialization! Key type must be an floating-point type");
+
+    using Unsigned_t = std::make_unsigned_t<std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>>;
+
+    Value_t* _Ptr = &*_First;
+    std::size_t _Size = std::distance(_First, _Last);
+    if (_Size <= 1) return;
+
+    constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
+    constexpr std::uint8_t _Shift = _Bucket_size == 256U ? 3 : 4;
+    constexpr std::uint16_t _Mask = _Bucket_size - 1;
+
+    constexpr std::size_t _Key_bits = sizeof(Key_t) << 3;
+    constexpr Unsigned_t _Sign_bit_mask = Unsigned_t{ 1 } << (_Key_bits - 1);
+    constexpr Unsigned_t _All_bits_mask = ~Unsigned_t{ 0 };
+
+    constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
+
+    const std::int32_t _Hardware_concurrency = omp_get_num_procs();
+
+    const std::size_t _Min_chunk_size = 1024;
+    const std::int32_t _Actual_threads = std::max(1,
+        std::min(_Hardware_concurrency, static_cast<std::int32_t>(_Size / _Min_chunk_size)));
+
+    const std::size_t _Chunk = (_Size + _Actual_threads - 1) / _Actual_threads;
+
+    std::vector<std::size_t> _Local_data(_Actual_threads * _Bucket_size * 2);
+
+    auto _Func_get_local_buckets = [&](int _Thread_id) -> std::size_t* {
+        return _Local_data.data() + _Thread_id * _Bucket_size * 2;
+        };
+
+    auto _Func_get_local_offsets = [&](int _Thread_id) -> std::size_t* {
+        return _Local_data.data() + _Thread_id * _Bucket_size * 2 + _Bucket_size;
+        };
+
+    std::array<std::size_t, _Bucket_size> _Global_prefix;
+
+    std::vector<Value_t> _Buffer(_Size);
+#if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
+    Value_t* __restrict _Start = _Ptr;
+    Value_t* __restrict _End = _Buffer.data();
+#else
+    Value_t* _Start = _Ptr;
+    Value_t* _End = _Buffer.data();
+#endif
+
+    for (std::uint8_t _Pass = 0; _Pass < _Passes - 1; ++_Pass) {
+        {
+            std::fill(_Local_data.begin(), _Local_data.end(), 0);
+
+#pragma omp parallel num_threads(_Actual_threads)
+            {
+                const int _Thread_id = omp_get_thread_num();
+                std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread_id);
+
+                const std::size_t _Start_idx = _Thread_id * _Chunk;
+                const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+                for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
+                    Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
+
+                    if constexpr (_Has_negative == Signedness::Signed) {
+                        if (_Unsigned_value >> (_Key_bits - 1)) _Unsigned_value ^= _All_bits_mask;
+                    }
+
+                    std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
+
+                    if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+
+                    ++_Local_buckets[_Byte_idx];
+                }
+            }
+        }
+
+        {
+            std::fill(_Global_prefix.begin(), _Global_prefix.end(), 0);
+
+            for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+                std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
+#if defined(__clang__)
+#pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+                for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+                    _Global_prefix[_Bucket] += _Local_buckets[_Bucket];
+                }
+            }
+
+            std::size_t _Running_sum = 0;
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+                std::size_t _Current_count = _Global_prefix[_Bucket];
+                _Global_prefix[_Bucket] = _Running_sum;
+                _Running_sum += _Current_count;
+            }
+
+            for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+#if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
+                std::size_t* __restrict _Local_buckets = _Func_get_local_buckets(_Thread);
+                std::size_t* __restrict _Local_offsets = _Func_get_local_offsets(_Thread);
+#else
+                std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
+                std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread);
+#endif
+#if defined(__clang__)
+#pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+                for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+                    _Local_offsets[_Bucket] = _Global_prefix[_Bucket];
+                    _Global_prefix[_Bucket] += _Local_buckets[_Bucket];
+                }
+            }
+        }
+
+        {
+#pragma omp parallel num_threads(_Actual_threads)
+            {
+                const int _Thread_id = omp_get_thread_num();
+                std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread_id);
+
+                const std::size_t _Start_idx = _Thread_id * _Chunk;
+                const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+                for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
+                    auto _Value = std::move(_Start[_Idx]);
+                    Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
+
+                    if constexpr (_Has_negative == Signedness::Signed) {
+                        if (_Unsigned_value >> (_Key_bits - 1)) _Unsigned_value ^= _All_bits_mask;
+                    }
+
+                    std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
+                    if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+                    _End[_Local_offsets[_Byte_idx]++] = std::move(_Value);
+                }
+            }
+        }
+        std::swap(_Start, _End);
+    }
+
+    std::size_t _NaN_count = 0;
+    std::vector<std::size_t> _Local_NaN_counts(_Actual_threads, 0);
+
+    // Signed Last Pass
+    // ^^^^^^
+    {   
+        std::fill(_Local_data.begin(), _Local_data.end(), 0);
+
+#pragma omp parallel num_threads(_Actual_threads)
+        {
+            const int _Thread_id = omp_get_thread_num();
+            std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread_id);
+
+            const std::size_t _Start_idx = _Thread_id * _Chunk;
+            const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
+                auto _Key = _Extractor(_Start[_Idx]);
+
+                if (std::isnan(_Key)) { ++_Local_NaN_counts[_Thread_id]; continue; }
+
+                Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Key);
+                if constexpr (_Has_negative == Signedness::Signed) {
+                    _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
+                }
+                std::uint16_t _Byte_idx = (_Unsigned_value >> ((_Passes - 1) << _Shift)) & _Mask;
+                if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+                ++_Local_buckets[_Byte_idx];
+            }
+        }
+
+        _NaN_count = std::accumulate(_Local_NaN_counts.begin(), _Local_NaN_counts.end(), 0);
+    }
+
+    {
+        std::fill(_Global_prefix.begin(), _Global_prefix.end(), 0);
+
+        for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+            std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
+#if defined(__clang__)
+#pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+                _Global_prefix[_Bucket] += _Local_buckets[_Bucket];
+            }
+        }
+
+        std::size_t _Running_sum = 0;
+        if constexpr (_NaN_position == NaNPosition::AtStart) {
+            _Running_sum = _NaN_count;
+        }
+
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+        for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+            std::size_t _Current_count = _Global_prefix[_Bucket];
+            _Global_prefix[_Bucket] = _Running_sum;
+            _Running_sum += _Current_count;
+        }
+
+        for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+#if defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER)
+            std::size_t* __restrict _Local_buckets = _Func_get_local_buckets(_Thread);
+            std::size_t* __restrict _Local_offsets = _Func_get_local_offsets(_Thread);
+#else
+            std::size_t* _Local_buckets = _Func_get_local_buckets(_Thread);
+            std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread);
+#endif
+#if defined(__clang__)
+#pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::uint32_t _Bucket = 0; _Bucket < _Bucket_size; ++_Bucket) {
+                _Local_offsets[_Bucket] = _Global_prefix[_Bucket];
+                _Global_prefix[_Bucket] += _Local_buckets[_Bucket];
+            }
+        }
+    }
+
+    {
+        std::vector<std::size_t> _Thread_NaN_offsets(_Actual_threads);
+        if constexpr (_NaN_position == NaNPosition::AtStart) {
+            std::size_t _NaN_running_sum = 0;
+#if defined(__clang__)
+#pragma clang loop vectorize(enable) unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+                _Thread_NaN_offsets[_Thread] = _NaN_running_sum;
+                _NaN_running_sum += _Local_NaN_counts[_Thread];
+            }
+        }
+        else if constexpr (_NaN_position == NaNPosition::AtEnd) {
+            std::size_t _NaN_running_sum = _Size - _NaN_count;
+#if defined(__clang__)
+#pragma clang loop vectorize(enable) unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::int32_t _Thread = 0; _Thread < _Actual_threads; ++_Thread) {
+                _Thread_NaN_offsets[_Thread] = _NaN_running_sum;
+                _NaN_running_sum += _Local_NaN_counts[_Thread];
+            }
+        }
+
+#pragma omp parallel num_threads(_Actual_threads)
+        {
+            const int _Thread_id = omp_get_thread_num();
+            std::size_t* _Local_offsets = _Func_get_local_offsets(_Thread_id);
+            std::size_t _Thread_NaN_offset = _Thread_NaN_offsets[_Thread_id];
+
+            const std::size_t _Start_idx = _Thread_id * _Chunk;
+            const std::size_t _End_idx = std::min(_Size, (_Thread_id + 1) * _Chunk);
+#if defined(__clang__)
+#pragma clang loop unroll_count(8)
+#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#pragma GCC unroll 8
+#elif defined(_MSC_VER)
+#endif
+            for (std::size_t _Idx = _Start_idx; _Idx < _End_idx; ++_Idx) {
+                auto _Value = std::move(_Start[_Idx]);
+                auto _Key = _Extractor(_Value);
+
+                if (std::isnan(_Key)) {
+                    if constexpr (_NaN_position == NaNPosition::AtStart) {
+                        _End[_Thread_NaN_offset++] = std::move(_Value);
+                    }
+                    else if constexpr (_NaN_position == NaNPosition::AtEnd) {
+                        _End[_Thread_NaN_offset++] = std::move(_Value);
+                    }
+                    continue;
+                }
+
+                Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Key);
+                if constexpr (_Has_negative == Signedness::Signed) {
+                    _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
+                }
+                std::uint16_t _Byte_idx = (_Unsigned_value >> ((_Passes - 1) << _Shift)) & _Mask;
+                if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
+                _End[_Local_offsets[_Byte_idx]++] = std::move(_Value);
+            }
+        }
+    }
+
+    std::swap(_Start, _End);
+
+    if constexpr (_Passes & 1) std::move(_Start, _Start + _Size, _Ptr);
+}
+
+template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size, Signedness _Has_negative, NaNPosition _NaN_position>
 requires ((_Bucket_size == 256U || _Bucket_size == 65536U) &&
         (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
 void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigIter _Last, KeyExtractor&& _Extractor)
@@ -259,6 +636,13 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
     using Key_t = std::decay_t<decltype(_Extractor(std::declval<Value_t>()))>;
     static_assert(std::is_arithmetic_v<Key_t> && !std::is_same_v<Key_t, bool> && sizeof(Key_t) >= 4,
         "Key type must be an arithmetic type (not bool) and at least 4 bytes. If you want to sort 8bits or 16bits, please using sequential_execution_policy.");
+    
+    if constexpr (std::is_floating_point_v<Key_t> &&
+        (_NaN_position == NaNPosition::AtStart || _NaN_position == NaNPosition::AtEnd)) {
+        radix_sort_impl_floating_point_NaN<ContigIter, Compare, KeyExtractor,
+            _Bucket_size, _Has_negative, _NaN_position>(std::execution::par, _First, _Last, std::forward<KeyExtractor>(_Extractor));
+        return;
+    }
 
     using Unsigned_t = std::make_unsigned_t<
         std::conditional_t<std::is_floating_point_v<Key_t>,
@@ -335,7 +719,7 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
                     Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
 
                     if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
-                        _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
+                        if (_Unsigned_value >> (_Key_bits - 1)) _Unsigned_value ^= _All_bits_mask;
                     }
 
                     std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -416,7 +800,7 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
                     Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
 
                     if constexpr (_Has_negative == Signedness::Signed && std::is_floating_point_v<Key_t>) {
-                        _Unsigned_value ^= ((_Unsigned_value >> (_Key_bits - 1)) == 0) ? _Sign_bit_mask : _All_bits_mask;
+                        if (_Unsigned_value >> (_Key_bits - 1)) _Unsigned_value ^= _All_bits_mask;
                     }
 
                     std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
@@ -573,10 +957,11 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter _First, ContigI
 template<typename ExecutionPolicy, typename ContigIter, typename Compare, typename KeyExtractor,
     std::uint32_t BucketSize = 256U,
     Signedness HasNegative = Signedness::Signed,
+    NaNPosition NaNPosition = NaNPosition::Unhandled,
     std::enable_if_t<is_execution_policy_v<std::decay_t<ExecutionPolicy>>, int> = 0>
 void radix_sort(ExecutionPolicy policy, ContigIter first, ContigIter last, Compare comp, KeyExtractor&& extractor)
 {
-    radix_sort_impl<ContigIter, Compare, KeyExtractor, BucketSize, HasNegative>(policy, first, last, std::forward<KeyExtractor>(extractor));
+    radix_sort_impl<ContigIter, Compare, KeyExtractor, BucketSize, HasNegative, NaNPosition>(policy, first, last, std::forward<KeyExtractor>(extractor));
 }
 
 // 基础版本：接受比较器和执行策略
@@ -744,7 +1129,7 @@ void test_radix_sort<int8_t, std::greater<int8_t>>(const std::string& type_name,
 
 int radix_sort_test() {
     std::cout.setf(std::ios_base::boolalpha);
-        std::cout << "开始基数排序测试..." << std::endl;
+    std::cout << "开始基数排序测试..." << std::endl;
     std::cout << "========================================" << std::endl;
 
     // 测试 int8_t

@@ -1,12 +1,20 @@
-﻿cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.20)
 
 FILE(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS ./*.cpp ./*.h)
 
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
+add_executable(${PROJECT_NAME} 
+    ${PROJECT_SOURCES}
+)
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
     WIN32_EXECUTABLE OFF    # 在 Windows 系统中，运行时不启动控制台窗口，默认OFF
     LINK_WHAT_YOU_USE ON    # 告诉编译器不要自动剔除没有引用符号的链接库，默认OFF
+    CUDA_SEPARABLE_COMPILATION ON #启用分离编译，对于复杂CUDA项目为必须
 )
+
+target_compile_options(${PROJECT_NAME} PRIVATE 
+    $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+    
 find_package(TBB COMPONENTS tbb tbbmalloc tbbmalloc_proxy REQUIRED HINTS ${VCPKG_CMAKE_SHARED_PATH})
 find_package(benchmark REQUIRED COMPONENTS benchmark benchmark_main HINTS ${VCPKG_CMAKE_SHARED_PATH})
 

@@ -1,11 +1,18 @@
 ﻿cmake_minimum_required(VERSION 3.20)
-project ("Cplusplus-learn")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
+project ("Cplusplus-learn" LANGUAGES C CXX CUDA)
 
 # 设置C++标准
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_ARCHITECTURES 61) # GTX1080Ti
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+
+set(CMAKE_CUDA_ARCHITECTURES native)
 
 # 输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin) # 可执行文件输出目录
@@ -30,6 +37,7 @@ include_directories(
     "C:/Program Files (x86)/Windows Kits/NETFXSDK/4.8/Include/um"
     ${VCPKG_INCLUDE_PATH}
     ${BOOST_INCLUDE_PATH}
+    $ENV{CUDA_TOOLKIT_ROOT_DIR}/include
     .
 )
 
@@ -61,6 +69,7 @@ if(WIN32 AND MSVC)
         "$<$<CXX_COMPILER_ID:MSVC>:/Gd>"           # __cdecl调用约定
         "$<$<CXX_COMPILER_ID:MSVC>:/fp:precise>"   # 浮点精度
         "$<$<CXX_COMPILER_ID:MSVC>:/FC>"           # 完整路径诊断
+        "$<$<CXX_COMPILER_ID:MSVC>:/await:strict>"
     )
 
     # 调试配置
