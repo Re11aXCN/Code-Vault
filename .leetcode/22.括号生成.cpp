@@ -1,3 +1,4 @@
+
 /*
  * @lc app=leetcode.cn id=22 lang=cpp
  *
@@ -15,39 +16,49 @@ using namespace std;
 
 class Solution {
 public:
+    std::size_t catalan_lgamma(std::size_t n) {
+        if (n == 0) return 1;
+        double log_comb = std::lgamma(2 * n + 1) - 2 * std::lgamma(n + 1);
+        return std::exp(log_comb + 1e-14) / (n + 1.0);
+    }
     vector<string> generateParenthesis(int n) {
 #ifdef BACKTRACKING
         // 回溯法解决括号生成问题
-        vector<string> result;  // 存储所有有效的括号组合
-        string current;         // 当前正在构建的括号组合
+        std::vector<std::string> result; // 存储所有有效的括号组合
+        result.reserve(catalan_lgamma(n));
+        std::string currSet; // 当前正在构建的括号组合
+        currSet.reserve(n * 2);
         
         // 调用回溯函数生成所有组合
-        backtrack(result, current, 0, 0, n);
+        backtrack(result, currSet, 0, 0, n);
         
         return result;
 #elif defined(DYNAMIC_PROGRAMMING)
-        // 动态规划法解决括号生成问题
-        // dp[i]表示i对括号的所有有效组合
-        vector<vector<string>> dp(n + 1);
-        dp[0] = {""};  // 0对括号只有一种情况，即空字符串
+        // 括号的个数符合卡特兰数，既然可以使用动态规划计算卡特兰数那么也可以使用动态规划得到括号  
         
-        // 计算dp[1], dp[2], ..., dp[n]
-        for (int i = 1; i <= n; i++) {
+        // dp[i]表示i对括号的所有有效组合
+        std::vector<std::vector<std::string>> dp(n + 1);
+        dp[0] = {""}, dp[1] = {"()"}; // 0对括号只有一种情况，即空字符串
+
+        for(int i = 2; i <= n; ++i) {
+            std::vector<std::string> current; current.reserve(catalan_log(i));
             // 对于i对括号，我们可以将其分解为j对括号和i-j-1对括号的组合
-            for (int j = 0; j < i; j++) {
+            for(int j = 0; j < i; ++j) {
                 // 遍历dp[j]中的每个组合
-                for (const string& left : dp[j]) {
+                #pragma GCC unroll 4
+                for (const string& inner : dp[j]) {
                     // 遍历dp[i-j-1]中的每个组合
-                    for (const string& right : dp[i - j - 1]) {
+                    #pragma GCC unroll 4
+                    for (const string& outer : dp[i - 1 - j]) {
                         // 将左边的组合、一对括号和右边的组合拼接起来
                         // 形式为: (left)right
-                        dp[i].push_back("(" + left + ")" + right);
+                        current.emplace_back("(" + inner + ")" + outer);
                     }
                 }
             }
+            dp[i] = std::move(current);
         }
-        
-        return dp[n];
+        return dp.back();
 #endif
     }
 

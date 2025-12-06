@@ -24,7 +24,7 @@ public:
         int len = s.length();
         if (len < 4 || len > 12) return {};
         
-        std::vector<std::string> result;
+        std::vector<std::string> result; result.reserve(4);
         
         // 枚举所有可能的分割点
         for (int i = 1; i <= 3 && i < len; ++i) {
@@ -83,3 +83,58 @@ private:
     }
 };
 // @lc code=end
+
+class Solution {
+public:
+    vector<string> restoreIpAddresses(string s) {
+        vector<string> result;
+        vector<int> path;  // 存储分割点的位置
+        
+        backtrack(s, 0, 0, path, result);
+        return result;
+    }
+    
+private:
+    void backtrack(const string& s, int start, int segments, vector<int>& path, vector<string>& result) {
+        // 已经找到3个分割点（即有4段）
+        if (segments == 3) {
+            // 检查最后一段是否有效
+            if (isValid(s, start, s.length())) {
+                // 构建IP地址
+                string ip = s.substr(0, path[0]) + "." +
+                           s.substr(path[0], path[1] - path[0]) + "." +
+                           s.substr(path[1], path[2] - path[1]) + "." +
+                           s.substr(path[2]);
+                result.push_back(ip);
+            }
+            return;
+        }
+        
+        // 尝试不同的分割位置
+        for (int i = 1; i <= 3; i++) {
+            int end = start + i;
+            if (end > s.length()) break;
+            
+            if (isValid(s, start, end)) {
+                path.push_back(end);
+                backtrack(s, end, segments + 1, path, result);
+                path.pop_back();  // 回溯
+            }
+        }
+    }
+    
+    bool isValid(const string& s, int start, int end) {
+        int len = end - start;
+        if (len <= 0 || len > 3) return false;
+        
+        // 前导0检查
+        if (s[start] == '0' && len > 1) return false;
+        
+        // 数值范围检查
+        int num = 0;
+        for (int i = start; i < end; i++) {
+            num = num * 10 + (s[i] - '0');
+        }
+        return num <= 255;
+    }
+};

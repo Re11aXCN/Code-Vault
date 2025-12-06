@@ -1,3 +1,29 @@
+    void reorderList(ListNode* head) {
+        ListNode* slow = head, * fast = head->next;
+        while (fast && fast->next) {
+            fast = fast->next->next;
+            slow = slow->next;
+        }
+        fast = slow->next;
+        slow->next = nullptr;
+        slow = head;
+        ListNode dummy(0, nullptr);
+        while (fast) {
+            ListNode* temp = fast->next;
+            fast->next = dummy.next;
+            dummy.next = fast;
+            fast = temp;
+        }
+        fast = &dummy;
+        while (fast->next) {
+            ListNode* temp = slow->next;
+            slow->next = fast->next;
+            fast->next = slow;
+            fast = fast->next->next;
+            slow = temp;
+        }
+        if (slow) fast->next = slow;
+    }
 /*
  * @lc app=leetcode.cn id=143 lang=cpp
  *

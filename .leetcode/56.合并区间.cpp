@@ -1,4 +1,22 @@
-﻿/*
+﻿vector<vector<int>> merge(vector<vector<int>>& intervals) {
+    std::sort(intervals.begin(), intervals.end(), [](const auto& a, const auto& b) { return a[0] < b[0]; });
+    intervals.push_back({INT_MAX, INT_MAX});
+    std::vector<std::vector<int>> result; result.reserve(intervals.size());
+    
+    for(int i = 1; i < intervals.size(); ++i) {
+        if (intervals[i - 1][1] >= intervals[i][1]) {
+            std::swap(intervals[i - 1], intervals[i]);
+        }
+        else if (intervals[i - 1][1] >= intervals[i][0]) {
+            intervals[i][0] = intervals[i - 1][0];
+        }
+        else {
+            result.emplace_back(intervals[i - 1].begin(), intervals[i - 1].end());
+        }
+    }
+    return result;
+}
+/*
  * @lc app=leetcode.cn id=56 lang=cpp
  *
  * [56] 合并区间

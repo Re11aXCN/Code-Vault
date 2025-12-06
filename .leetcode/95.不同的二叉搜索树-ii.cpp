@@ -1,3 +1,4 @@
+
 #include <vector>
 using std::vector;
 /*
@@ -27,7 +28,7 @@ public:
         vector<vector<TreeNode*>> dp(n + 1);
         dp[0] = {nullptr}; // 空树
         
-        for (int len = 1; ++len <= n; len) { // 树的大小从1到n
+        for (int len = 1; len <= n; len++) { // 树的大小从1到n
             vector<TreeNode*> trees;
             
             for (int rootVal = 1; rootVal <= len; ++rootVal) {
@@ -68,42 +69,44 @@ private:
 };
 // @lc code=end
 class Solution {
-public:
-    vector<TreeNode*> generateTrees(int n) {
-        if (n == 0) return {};
-        return generateTrees(1, n);
-    }
-    
 private:
-    vector<TreeNode*> generateTrees(int start, int end) {
-        vector<TreeNode*> result;
+    size_t catalan(int n) {
+        if (n == 0) return 1;
+        float log_comb = std::lgammaf(2 * n + 1) - 2 * std::lgammaf(n + 1);
+        return std::expf(log_comb + 1e-5f) / (n + 1.0f);
+    }
+
+    // 递归生成[start, end]范围内的所有BST
+    std::vector<TreeNode*> generate(int start, int end) {
+        if (start > end) return {nullptr};
         
-        // 空树的情况
-        if (start > end) {
-            result.push_back(nullptr);
-            return result;
-        }
-        
-        // 遍历所有可能的根节点
-        for (int i = start; i <= end; i++) {
+        std::vector<TreeNode*> res;
+        res.reserve(catalan(end - start + 1));
+
+        // 遍历每个可能的根节点
+        for (int rootVal = start; rootVal <= end; ++rootVal) {
             // 生成所有可能的左子树（由较小的数字组成）
-            vector<TreeNode*> leftTrees = generateTrees(start, i - 1);
-            
+            std::vector<TreeNode*> leftTrees = generate(start, rootVal - 1);
             // 生成所有可能的右子树（由较大的数字组成）
-            vector<TreeNode*> rightTrees = generateTrees(i + 1, end);
-            
-            // 组合左右子树
+            std::vector<TreeNode*> rightTrees = generate(rootVal + 1, end);
+
+            // 组合左、根、右
             for (TreeNode* left : leftTrees) {
                 for (TreeNode* right : rightTrees) {
-                    TreeNode* root = new TreeNode(i);
+                    TreeNode* root = new TreeNode(rootVal);
                     root->left = left;
                     root->right = right;
-                    result.push_back(root);
+                    res.push_back(root);
                 }
             }
         }
-        
+        return res;
+    }
+
+public:
+    std::vector<TreeNode*> generateTrees(int n) {
+        if (n == 0) return {};
+        std::vector<TreeNode*> result = generate(1, n);
         return result;
     }
 };
-

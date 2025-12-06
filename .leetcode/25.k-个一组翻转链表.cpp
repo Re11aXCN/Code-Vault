@@ -1,3 +1,28 @@
+ListNode* reverseKGroup(ListNode* head, int k) {
+    if (head == nullptr || k == 1) return head;
+    ListNode dummy(0, nullptr), *dummyHead = &dummy, *dummyTail = dummy.next, *first = head;
+    int lLen = 0;
+    while (first && first->next) {
+        first = first->next->next;
+        ++lLen;
+    }
+    if (lLen <<= 1; first != nullptr) ++lLen;
+    int round = lLen / k;
+    first = head;
+    while (round-- != 0) {
+        int count = k;
+        while (count != 0) {
+            if (count-- == k) dummyTail = first;
+            ListNode* temp = first->next;
+            first->next = dummyHead->next;
+            dummyHead->next = first;
+            first = temp;
+        }
+        dummyTail->next = first;
+        dummyHead = dummyTail;
+    }
+    return dummy.next;
+}
 /*
  * @lc app=leetcode.cn id=25 lang=cpp
  *

@@ -1,4 +1,34 @@
-﻿
+﻿class Solution {
+public:
+    template <typename T, std::size_t N, std::size_t... Is>
+    constexpr auto make_array_impl(T&& value, std::index_sequence<Is...>) {
+        using ValueType = std::decay_t<T>;
+        ValueType val = std::forward<T>(value);
+        return std::array<ValueType, N>{ (static_cast<void>(Is), val)... };
+    }
+
+    template <typename T, std::size_t N>
+    constexpr auto make_array(T&& value) {
+        return make_array_impl<T, N>(std::forward<T>(value), std::make_index_sequence<N>());
+    }
+    // 字串连续，abca
+    int lengthOfLongestSubstring(std::string s) {
+        int size = s.size();
+        if (size <= 1) [[unlikely]] return size;
+
+        // 索引查找表
+        auto charSet = make_array<int, 128>(-1);
+        int maxLen = 0;
+        #pragma GCC unroll 8
+        for (int left = 0, right = 0; right < size; ++right) {
+            char c = s[right];
+            if (int val = charSet[c] + 1; val > left) left = val; // 如果我们先前记录过，说明不为-1，说明重复，更新left
+            if (int currLen = right - left + 1; currLen > maxLen) maxLen = currLen;
+            charSet[c] = right; // 记录索引
+        }
+        return maxLen;
+    }
+};
 /*
  * @lc app=leetcode.cn id=3 lang=cpp
  *

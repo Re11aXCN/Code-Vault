@@ -1,3 +1,23 @@
+int findDuplicate(vector<int>& nums) {
+    int size = nums.size();
+    
+    for (int i = 0; i < size; ++i) {
+        // 如果当前位置的数字不在正确的位置
+        while (nums[i] != i + 1) {
+            int correct_index = nums[i] - 1;
+            
+            // 如果目标位置已经放着正确的数字，说明找到了重复
+            if (nums[i] == nums[correct_index]) {
+                return nums[i];
+            }
+            
+            // 否则交换到正确位置
+            std::swap(nums[i], nums[correct_index]);
+        }
+    }
+    
+    return -1;  // 理论上不会执行到这里
+}
 /*
  * @lc app=leetcode.cn id=287 lang=cpp
  *

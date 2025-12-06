@@ -1,4 +1,26 @@
-﻿class Solution {
+﻿    int myAtoi(std::string s) {
+        int result = 0, i = 0;
+        for (; i < s.size(); ++i) {
+            if (s[i] == ' ') continue;
+            else if (std::isalpha(s[i]) || s[i] == '.') return result;
+            else break;
+        }
+        bool isNegative = s[i] == '-';
+        if (isNegative || s[i] == '+') ++i;
+        constexpr int max_div10 = INT_MAX / 10;
+        for (; i < s.size(); ++i) {
+            if (s[i] >= '0' && s[i] <= '9') {
+                int di = s[i] - '0';
+                if (result > max_div10) return isNegative ? INT_MIN : INT_MAX;
+                if (result == max_div10 && di >= 8) return isNegative ? INT_MIN : INT_MAX;
+                result = result * 10 + di;
+            }
+            else break;
+        }
+            
+        return isNegative ? -result : result;
+    }
+class Solution {
 public:
     int myAtoi(std::string s) {
         if (s.empty()) return 0;

@@ -1,3 +1,15 @@
+    int minPathSum(vector<vector<int>>& grid) {
+        size_t ROWS{ grid.size() }, COLS{ grid[0].size() };
+        std::vector<uint32_t> dp(COLS + 1, INT_MAX);
+        dp[0] = dp[1] = 0;
+        for(size_t i = 1; i <= ROWS; ++i) {
+            dp[0] += dp[1]; // 处理第一列，让min能够正确处理dp【1】加上top的值
+            for(size_t j = 1; j <= COLS; ++j) {
+                dp[j] = std::min(dp[j], dp[j - 1]) + grid[i - 1][j - 1];
+            }
+        }
+        return dp.back();
+    }
 /*
  * @lc app=leetcode.cn id=64 lang=cpp
  *

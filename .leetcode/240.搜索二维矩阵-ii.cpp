@@ -1,4 +1,23 @@
-﻿/*
+﻿    bool searchMatrix(vector<vector<int>>& matrix, int target) {
+        int ROWS( matrix.size() ), COLS( matrix[0].size() );
+        if (target > matrix[ROWS - 1][COLS - 1]) return false;
+        if (target == matrix[ROWS - 1][COLS - 1]) return true;
+
+        for (int row = 0, col = COLS - 1; row < ROWS; ++row) {
+            #pragma clang loop unroll_count(4)
+            for ( ; col >= 0; --col) {
+                if (matrix[row][col] > target) {
+                    continue;
+                }
+                else if (matrix[row][col] < target) {
+                    break;
+                }
+                else return true;
+            }
+        } 
+        return false;
+    }
+/*
  * @lc app=leetcode.cn id=240 lang=cpp
  *
  * [240] 搜索二维矩阵 II

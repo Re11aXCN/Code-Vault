@@ -1,4 +1,92 @@
-﻿/*
+﻿class Solution {
+public:
+    string minWindow(string s, string t) {
+        size_t sLen{ s.size() }, tLen{ t.size() };
+        if(sLen < tLen) return {};
+
+        // need：记录t中每个字符的需要数量（ASCII码范围0-127，故数组大小128）
+        // window：记录滑动窗口中每个字符的当前数量
+        std::array<size_t, 128> need{}, window{};
+
+        // 遍历t，统计每个字符的需要数量
+        #pragma clang loop unroll_count(8)
+        for(char c : t) ++need[c];
+        
+        // valid：窗口中满足「数量要求」的字符种类数（比如t需要2个A，窗口有2个A则valid+1）
+        // required：t中需要满足的字符种类总数（去重后的字符数）
+        // start：最小覆盖子串的起始位置
+        // minLen：最小覆盖子串的长度（初始化为INT_MAX，方便后续更新）
+        size_t valid{ 0 }, required{ 0 }, start{ 0 }, minLen{ INT_MAX };
+
+        // 统计t中有多少种不同的字符（即需要满足的种类数）
+        #pragma clang loop unroll_count(8)
+        for (int i = 0; i < 128; ++i) if (need[i] > 0) ++required;
+ 
+        #pragma clang loop unroll_count(4)
+        for(size_t left = 0, right = 0; right < sLen; ++right) {
+            // 右指针扩张窗口：将当前字符纳入窗口
+            char add = s[right];
+            // 如果当前字符是t需要的字符，字符计数+1，若恰好等于需要的数量valid+1
+            if (need[add] > 0) {
+                if (++window[add] == need[add])  ++valid;
+            }
+            // AABC ABC
+            //左指针收缩窗口：当窗口满足所有字符需求（valid==required）时，尝试缩小窗口找最小值
+            while (valid == required) {
+                // 若比已记录的最小长度更小 → 更新最小长度和起始位置
+                if (int currLen = right - left + 1; currLen < minLen) {
+                    minLen = currLen;
+                    start = left;
+                }
+
+                // 移出左指针指向的字符（收缩窗口）
+                char del = s[left++];
+                // 如果被移出的字符是t需要的字符，窗口中该字符计数-1（延迟）
+                if (need[del] > 0) {
+                    // 若移出前该字符数量恰好满足要求 → 移出后不再满足，valid-1
+                    if (window[del]-- == need[del]) --valid;
+                }
+            }
+        }
+
+        return minLen == INT_MAX ? std::string{} : s.substr(start, minLen);
+    }
+};
+
+class Solution {
+public:
+    string minWindow(string s, string t) {
+        size_t sLen{ s.size() }, tLen{ t.size() };
+        if(sLen < tLen) return {};
+
+        std::array<int, 128> count{};
+        
+        #pragma clang loop unroll_count(8)
+        for(char c : t) ++count[c];
+        
+        size_t required{ 0 }, valid{ 0 }, start{ 0 }, minLen{ INT_MAX };
+
+        #pragma clang loop unroll_count(8)
+        for (int i = 0; i < 128; ++i) if (count[i] > 0) ++required;
+
+        #pragma clang loop unroll_count(4)
+        for(size_t left = 0, right = 0; right < sLen; ++right) {
+            if (--count[s[right]] == 0) ++valid;
+
+            while (valid == required) {
+                if (int currLen = right - left + 1; currLen < minLen) {
+                    minLen = currLen;
+                    start = left;
+                }
+                if (++count[s[left++]] > 0) --valid;
+            }
+        }
+
+        return minLen == INT_MAX ? std::string{} : s.substr(start, minLen);
+    }
+};
+
+/*
  * @lc app=leetcode.cn id=76 lang=cpp
  *
  * [76] 最小覆盖子串

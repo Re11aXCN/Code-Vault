@@ -1,4 +1,72 @@
 /*
+    使用interval表示当前合并的步长
+
+    每次合并间隔为interval的两个链表
+
+    结果放在前一个位置（lists[i]）
+
+    不断加倍interval直到覆盖所有链表
+*/
+class Solution {
+public:
+    ListNode* mergeKLists(vector<ListNode*>& lists) {
+        if (lists.empty()) return nullptr;
+    
+        int k = lists.size();
+        int interval = 1;  // 初始步长
+    
+        while (interval < k) {
+            #pragma clang loop unroll_count(4)
+            for (int i = 0; i < k - interval; i += interval * 2) {
+                // 合并 lists[i] 和 lists[i + interval]
+                lists[i] = merge(lists[i], lists[i + interval]);
+            }
+            interval *= 2;  // 步长加倍
+        }
+    
+        return lists[0];
+    }
+
+    ListNode* merge(ListNode* l1, ListNode* l2) {
+        ListNode dummy(0, nullptr), *tail = &dummy;
+        while(l1 && l2) {
+            if (l1->val <= l2->val) {
+                tail->next = l1;
+                l1 = l1->next;
+            }
+            else {
+                tail->next = l2;
+                l2 = l2->next;
+            }
+            tail = tail->next;
+        }
+        tail->next = l1 ? l1 : l2;
+        return dummy.next;
+    }
+};
+// or
+ListNode* mergeKLists(vector<ListNode*>& lists) {
+    if (lists.empty()) return nullptr;
+    
+    int n = lists.size();
+    while (n > 1) {
+        int i = 0;
+        for (int j = 0; j < n; j += 2) {
+            if (j + 1 < n) {
+                // 合并相邻的两个链表，结果放在前一个位置
+                lists[i] = merge(lists[j], lists[j + 1]);
+            } else {
+                // 如果是奇数个，直接复制最后一个
+                lists[i] = lists[j];
+            }
+            i++;
+        }
+        n = i;  // 更新链表的数量（减半或减半加1）
+    }
+    
+    return lists[0];
+}
+/*
  * @lc app=leetcode.cn id=23 lang=cpp
  *
  * [23] 合并 K 个升序链表

@@ -1,4 +1,72 @@
-﻿/*
+﻿class Solution {
+public:
+    vector<vector<string>> groupAnagrams(vector<string>& strs) {
+        std::unordered_map<std::string, int> groupMap; groupMap.reserve(strs.size() >> 1);
+        std::vector<std::vector<std::string>> result; result.reserve(strs.size() >> 1);
+        for (auto& str : strs) {
+            if (int size = str.size(); size <= 16) {
+                std::string key{ str };
+                std::sort(key.begin(), key.end());
+                auto it = groupMap.find(key);
+                if (it != groupMap.end()) {
+                    result[it->second].emplace_back(std::move(str));
+                }
+                else {
+                    std::vector<std::string> anagrams; anagrams.reserve(size * size);
+                    anagrams.push_back(std::move(str));
+                    result.push_back(std::move(anagrams));
+                    groupMap.try_emplace(std::move(key), result.size() - 1);
+                }
+            }
+            else {
+                std::string key(26, '0');
+                #pragma GCC unroll 4
+                for (char c : str) key[(c - 'a')] += 1;
+                auto it = groupMap.find(key);
+                if (it != groupMap.end()) {
+                    result[it->second].emplace_back(std::move(str));
+                }
+                else {
+                    std::vector<std::string> anagrams; anagrams.reserve(size * size);
+                    anagrams.push_back(std::move(str));
+                    result.push_back(std::move(anagrams));
+                    groupMap.try_emplace(std::move(key), result.size() - 1);
+                }
+            }
+        }
+        return result;
+    }
+
+    vector<vector<string>> groupAnagrams(vector<string>& strs) {
+        std::unordered_map<std::string, std::vector<std::string>> groupMap; groupMap.reserve(strs.size() >> 1);
+        
+        for (auto& str : strs) {
+            if (int size = str.size(); size <= 16) {
+                std::string key{ str };
+                std::sort(key.begin(), key.end());
+                auto& map = groupMap[std::move(key)];
+                map.reserve(size * size);
+                map.push_back(std::move(str));
+            }
+            else {
+                std::string key(26, '0');
+                #pragma GCC unroll 4
+                for (char c : str) key[(c - 'a')] += 1;
+                auto& map = groupMap[std::move(key)];
+                map.reserve(size * size);
+                map.push_back(std::move(str));
+            }
+        }
+        
+        std::vector<std::vector<std::string>> result; result.reserve(strs.size() >> 1);
+        for (auto& [k, v] : groupMap) {
+            result.push_back(std::move(v));
+        }
+        return result;
+    }
+};
+
+/*
  * @lc app=leetcode.cn id=49 lang=cpp
  *
  * [49] 字母异位词分组

@@ -1,4 +1,17 @@
-﻿/*
+﻿    int firstMissingPositive(std::vector<int>& nums) {
+        #pragma clang loop unroll_count(8)
+        for(int num : nums) {
+            while(num > 0 && num <= nums.size() && nums[num - 1] != num) {
+                std::swap(num, nums[num - 1]);
+            }
+        }
+        #pragma clang loop unroll_count(8)
+        for(int i = 0; i < nums.size(); ++i) {
+            if (int mapIdx = i + 1; nums[i] != mapIdx) return mapIdx;
+        }
+        return nums.size() + 1;
+    }
+/*
  * @lc app=leetcode.cn id=41 lang=cpp
  *
  * [41] 缺失的第一个正数

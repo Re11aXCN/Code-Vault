@@ -1,3 +1,16 @@
+int combinationSum4(std::vector<int>& nums, int target) {
+    std::sort(nums.begin(), nums.end());
+    std::vector<size_t> dp(target + 1, 0);
+    dp[0] = 1;
+
+    for(int j = 1; j <= target; ++j) {
+        for(int num : nums) {
+            if (num > j) break;
+            dp[j] += dp[j - num];
+        }
+    }
+    return dp.back();
+}
 /*
  * @lc app=leetcode.cn id=377 lang=cpp
  *

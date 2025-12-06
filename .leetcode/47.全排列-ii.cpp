@@ -31,8 +31,8 @@ public:
         // 先排序，使相同的元素相邻，便于去重
         insert_sort(nums.begin(), nums.end(), std::less<>{});
 
-        std::vector<std::vector<int>> result;
-        std::vector<int> currSet;
+        std::vector<std::vector<int>> result; result.reserve((size_t)std::tgamma(nums.size() + 1));
+        std::vector<int> currSet; currSet.reserve(nums.size());
         std::vector<uint8_t> used(nums.size(), 0);
         backtrack(nums, result, currSet, used);
         return result;
@@ -49,11 +49,12 @@ public:
 
         for(int i = 0; i < nums.size(); ++i) {
             auto& used_ref = used[i];
-            if (used_ref) continue; // 防止重复使用同一个元素，跳过已使用的元素
+            if (used_ref) continue; // 防止树枝上，重复使用同一个元素，跳过已使用的元素
 
             // [1 1 2]排列去重关键逻辑：
             // 如果当前元素与前一个元素相同，且前一个元素未被使用，则跳过
             // 这确保了对于相同的数字，我们按照它们在原数组中的顺序使用
+            // 前一个是false说明是树层，否则是树枝，我们只需要去重树层
             if (i > 0 && nums[i] == nums[i-1] && !used[i-1]) continue;
 
             currSet.emplace_back(nums[i]);

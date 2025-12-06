@@ -38,7 +38,7 @@ public:
         
         // 添加新项到最近使用的位置
         items_list_.push_front({key, value});
-        cache_map_[key] = items_list_.begin();
+        cache_map_.try_emplace(key, items_list_.begin());
     }
 
     // 检查键是否存在于缓存中
@@ -112,7 +112,7 @@ public:
         
         // 添加新项到最近使用的位置
         items_list_.push_front({key, value});
-        cache_map_[key] = items_list_.begin();
+        cache_map_.try_emplace(key, items_list_.begin());
     }
     
     // 检查键是否存在于缓存中
@@ -334,7 +334,7 @@ public:
 
         // 插入新节点到链表头部，并更新哈希表
         cache_list_.emplace_front(key, value);
-        cache_map_[key] = cache_list_.begin();
+        cache_map_.try_emplace(key, cache_list_.begin());
     }
 
 private:

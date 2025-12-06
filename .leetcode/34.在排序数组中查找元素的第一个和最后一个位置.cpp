@@ -1,3 +1,114 @@
+#include <vector>
+#include <iostream>
+using namespace std;
+
+class Solution {
+public:
+    std::vector<int> searchRange(std::vector<int>& nums, int target) {
+        // 初始化结果为[-1, -1]，处理未找到的情况
+        std::vector<int> result = {-1, -1};
+        if (nums.empty()) {
+            return result;
+        }
+
+        // 第一步：找左边界（第一个等于target的位置）
+        int left = findLeftBound(nums, target);
+        // 若左边界不存在，直接返回[-1,-1]
+        if (left == -1) {
+            return result;
+        }
+        // 第二步：找右边界（最后一个等于target的位置）
+        int right = findRightBound(nums, target);
+
+        result[0] = left;
+        result[1] = right;
+        return result;
+    }
+
+private:
+    // 二分查找左边界：第一个等于target的索引
+    int findLeftBound(const vector<int>& nums, int target) {
+        int left = 0;
+        int right = nums.size() - 1;
+        int leftBound = -1;
+
+        while (left <= right) {
+            int mid = left + (right - left) / 2; // 避免溢出
+            if (nums[mid] == target) {
+                leftBound = mid;       // 记录当前位置
+                right = mid - 1;       // 继续向左找更小的索引
+            } else if (nums[mid] < target) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return leftBound;
+    }
+
+    // 二分查找右边界：最后一个等于target的索引
+    int findRightBound(const vector<int>& nums, int target) {
+        int left = 0;
+        int right = nums.size() - 1;
+        int rightBound = -1;
+
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (nums[mid] == target) {
+                rightBound = mid;      // 记录当前位置
+                left = mid + 1;        // 继续向右找更大的索引
+            } else if (nums[mid] < target) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return rightBound;
+    }
+};
+
+std::vector<int> searchRange(std::vector<int>& nums, int target) {
+        int left = 0, right = nums.size() - 1;
+        std::vector<int> result{-1, -1};
+        while(left <= right) {
+            int mid = left + (right - left) / 2;
+            if (target > nums[mid]) left = mid + 1;
+            else if (target < nums[mid]) right = mid - 1; 
+            else {
+                int t2 = mid, t1 = mid;
+                helper2(nums, target, left, mid - 1, t2);
+                helper1(nums, target, mid + 1, right, t1);
+                result[0] = t2, result[1] = t1;
+                break;
+            }
+        }
+        return result;
+    }
+    void helper1(std::vector<int>& nums, int target, int left, int right, int& range) {
+        while(left <= right) {
+            int mid = left + (right - left) / 2;
+            if (target > nums[mid]) left = mid + 1;
+            else if (target < nums[mid]) right = mid - 1; 
+            else {
+                range = mid;
+                helper1(nums, target, mid + 1, right, range);
+                break;
+            }
+        }
+    }
+    void helper2(std::vector<int>& nums, int target, int left, int right, int& range) {
+        while(left <= right) {
+            int mid = left + (right - left) / 2;
+            if (target > nums[mid]) left = mid + 1;
+            else if (target < nums[mid]) right = mid - 1; 
+            else {
+                range = mid;
+                helper2(nums, target, left, mid - 1, range);
+                break;
+            }
+        }
+    }
+
     std::vector<int> searchRange(std::vector<int>& nums, int target) {
         int size = nums.size();
         int left{0}, right{size - 1};

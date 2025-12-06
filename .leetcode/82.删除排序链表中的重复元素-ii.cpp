@@ -1,3 +1,35 @@
+   ListNode* deleteDuplicates(ListNode* head) {
+        ListNode dummy2(INT_MAX, head), dummy1(INT_MAX, &dummy2);
+        ListNode *prev = &dummy1, *mid = &dummy2, *right = head;
+        bool needDel = false;
+        while(right) {
+            if (mid->val == right->val) {
+                mid->next = right->next;
+                ListNode* temp = right;
+                right = mid->next;
+                delete temp, temp = nullptr;
+                needDel = true;
+            }
+            else if (mid->val != right->val && needDel) {
+                prev->next = mid->next;
+                right = right->next;
+                ListNode* temp = mid;
+                mid = prev->next;
+                delete temp, temp = nullptr;
+                needDel = false;
+            }
+            else {
+                prev = prev->next;
+                mid = mid->next;
+                right = right->next;
+            }
+        }
+        if (needDel) {
+            prev->next = mid->next;
+            delete mid, mid = nullptr;
+        }
+        return dummy2.next;
+    }
 /*
  * @lc app=leetcode.cn id=82 lang=cpp
  *

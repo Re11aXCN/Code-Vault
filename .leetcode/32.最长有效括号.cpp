@@ -1,3 +1,14 @@
+int longestValidParentheses(string s) {
+    std::stack<int> stk; stk.emplace(-1);
+    int maxLen = 0;
+    for (int i = 0; i < s.size(); ++i) {
+        char c = s[i];
+        if (c == '(') stk.emplace(i);
+        else if (stk.pop(); stk.empty()) stk.emplace(i);
+        else if (int currLen = i - stk.top(); currLen > maxLen) maxLen = currLen;
+    }
+    return maxLen;
+}
 /*
  * @lc app=leetcode.cn id=32 lang=cpp
  *
@@ -163,6 +174,7 @@ public:
 #elif defined(STACK_SOLUTION)
         int maxLen = 0;
         stack<int> stk;
+        // 处理s=())() 这样的情况，如果前面匹配，栈空，然后是) ，需要一个哨兵进行匹配，不断替换哨兵索引
         stk.push(-1);  // 初始哨兵，便于计算长度
         
         for(int i = 0; i < n; i++) {
@@ -181,7 +193,54 @@ public:
         }
         
         return maxLen;
+#elif defined(TWO_POINTS)
+        int left = 0, right = 0, maxLen = 0;
+        // 从左到右
+        for(int i = 0; i < s.length(); ++i) {
+            if(s[i] == '(') ++left;
+            else ++right;
+            if(left == right) maxLen = max(maxLen, 2*right);
+            else if(right > left) left = right = 0; // 重置，右括号太多
+        }
+        left = right = 0;
+        // 从右到左
+        for(int i = s.length() - 1; i >= 0; --i) {
+            if(s[i] == '(') ++left;
+            else ++right;
+            if(left == right) maxLen = max(maxLen, 2*left);
+            else if(left > right) left = right = 0; // 重置，左括号太多
+        }
+        return maxLen;
 #endif
     }
 };
 // @lc code=end
+// 无哨兵
+int maxLen = 0;
+stack<int> stk;
+
+for(int i = 0; i < n; i++) {
+    if(s[i] == '(') {
+        stk.push(i);
+    } else { // s[i] == ')'
+        if(stk.empty()) {
+            // 没有匹配的左括号，记录当前位置作为无效点
+            // 不需要push，因为我们只是标记这个位置无效
+            // 实际上我们可以把当前位置看作新的"起始点-1"
+            // 但更简单的方法是：当栈为空时，我们计算不了有效长度
+        } else {
+            stk.pop();  // 弹出匹配的左括号
+            if(stk.empty()) {
+                // 如果弹出后栈为空，说明从开头到当前位置都是有效的
+                maxLen = max(maxLen, i + 1);
+            } else {
+                // 栈不为空，说明前面还有未匹配的左括号
+                // 当前位置到栈顶索引（上一个未匹配的左括号）之间是有效的
+                maxLen = max(maxLen, i - stk.top());
+            }
+        }
+    }
+}
+
+return maxLen;
+

@@ -1,3 +1,5 @@
+// 类似题：98. 验证二叉搜索树
+
 void recoverTree(TreeNode* root) {
     TreeNode *prev = nullptr, *first = nullptr, *second = nullptr;
     TreeNode *curr = root;

@@ -1,3 +1,46 @@
+// 第三次写
+class Solution {
+public:
+    ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
+        if (!l1) return copyList(l2);
+        if (!l2) return copyList(l1);
+        ListNode dummy(0, nullptr), *p = &dummy, * p1 = l1, *p2 = l2;
+        bool carry = false;
+        while(p1 && p2) {
+            int val = p1->val + p2->val + (carry ? 1 : 0);
+            carry = val > 9;
+            p->next = new ListNode(val - (carry ? 10 : 0), nullptr);
+            p = p->next;
+            p1 = p1->next;
+            p2 = p2->next;
+        }
+        _constructRemain(p, p1 ? p1 : p2, carry);
+
+        return dummy.next;
+    }
+
+    ListNode* copyList(ListNode* l) {
+        ListNode dummy(0, nullptr), *p = &dummy;
+        while(l) {
+            p->next = new ListNode(l->val, nullptr);
+            l = l->next;
+        }
+        return dummy.next;
+    }
+private:
+    void _constructRemain(ListNode* head, ListNode* remain, bool& carry) {
+        while(remain) {
+            int val = remain->val + (carry ? 1 : 0);
+            carry = val > 9;
+            head->next = new ListNode(val - (carry ? 10 : 0), nullptr);
+            head = head->next;
+            remain = remain->next;
+        }
+        if (carry) head->next = new ListNode(1, nullptr);
+    }
+
+};
+// 第二次写
 class Solution {
 public:
     ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {

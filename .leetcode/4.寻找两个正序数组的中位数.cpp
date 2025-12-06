@@ -234,48 +234,42 @@ private:
     double binarySearchMethod(vector<int>& nums1, vector<int>& nums2) {
         // 确保nums1是较短的数组，减少二分查找次数
         if (nums1.size() > nums2.size()) {
-            return binarySearchMethod(nums2, nums1);
+            return findMedianSortedArrays(nums2, nums1);
         }
-        
-        int nums1_size = nums1.size();
-        int nums2_size = nums2.size();
-        int total_size = nums1_size + nums2_size;
-        int left_part_size = (total_size + 1) >> 1; // 左半部分应有的元素数量
-        
-        int search_left = 0, search_right = nums1_size; // nums1分割点的搜索范围
-        
-        while (search_left <= search_right) {
+
+        int nums1Size = nums1.size(), nums2Size = nums2.size(), totalSize = nums1Size + nums2Size;
+        int leftPartSize = (totalSize + 1) / 2; // 左半部分应有的元素数量
+        int searchLeft = 0, searchRight = nums1Size; // nums1分割点的搜索范围
+
+        while (searchLeft <= searchRight) {
             // 在nums1中选择分割点
-            int nums1_split_index = (search_left + search_right) >> 1;
+            int nums1SplitIndex = (searchLeft + searchRight) / 2;
             // 计算nums2中对应的分割点
-            int nums2_split_index = left_part_size - nums1_split_index;
-            
+            int nums2SplitIndex = leftPartSize - nums1SplitIndex;
+
             // 处理边界情况，确定四个关键值
-            int nums1_left_max = (nums1_split_index == 0) ? numeric_limits<int>::min() : nums1[nums1_split_index - 1];
-            int nums1_right_min = (nums1_split_index == nums1_size) ? numeric_limits<int>::max() : nums1[nums1_split_index];
-            int nums2_left_max = (nums2_split_index == 0) ? numeric_limits<int>::min() : nums2[nums2_split_index - 1];
-            int nums2_right_min = (nums2_split_index == nums2_size) ? numeric_limits<int>::max() : nums2[nums2_split_index];
-            
+            int nums1LeftMax    = (nums1SplitIndex != 0)          ? nums1[nums1SplitIndex - 1]    : INT_MIN;
+            int nums1RightMin   = (nums1SplitIndex != nums1Size)  ? nums1[nums1SplitIndex]        : INT_MAX;
+            int nums2LeftMax    = (nums2SplitIndex != 0)          ? nums2[nums2SplitIndex - 1]    : INT_MIN;
+            int nums2RightMin   = (nums2SplitIndex != nums2Size)  ? nums2[nums2SplitIndex]        : INT_MAX; 
+
             // 检查分割点是否正确
-            if (nums1_left_max <= nums2_right_min && nums2_left_max <= nums1_right_min) {
+            if (nums1LeftMax <= nums2RightMin && nums2LeftMax <= nums1RightMin) {
                 // 找到正确的分割点
-                if (total_size & 1) {
+                if (totalSize << 31) {
                     // 奇数情况: 左半部分的最大值就是中位数
-                    return static_cast<double>(max(nums1_left_max, nums2_left_max));
-                } else {
-                    // 偶数情况: 左半部分最大值和右半部分最小值的平均值
-                    return (max(nums1_left_max, nums2_left_max) + min(nums1_right_min, nums2_right_min)) / 2.0;
+                    return std::max(nums1LeftMax, nums2LeftMax);
                 }
-            } else if (nums1_left_max > nums2_right_min) {
-                // nums1的分割点太靠右，需要左移
-                search_right = nums1_split_index - 1;
-            } else {
-                // nums1的分割点太靠左，需要右移
-                search_left = nums1_split_index + 1;
+                // 偶数情况: 左半部分最大值和右半部分最小值的平均值
+                return (std::max(nums1LeftMax, nums2LeftMax) + std::min(nums2RightMin, nums1RightMin)) / 2.0;
             }
+            // nums1的分割点太靠右，需要左移
+            else if (nums1LeftMax > nums2RightMin) searchRight = nums1SplitIndex - 1;
+            // nums1的分割点太靠左，需要右移
+            else searchLeft = nums1SplitIndex + 1;
         }
-        
-        return 0.0; // 理论上不会执行到这里
+
+        return -1.0; // 理论上不会执行到这里
     }
 };
 // @lc code=end
