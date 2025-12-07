@@ -35,4 +35,12 @@ namespace stdex {
         return const_cast<T&>(t);
     }
 
+    template<typename Class, typename Ty>
+    struct strong_type {
+    protected:
+        Ty value_;
+    public:
+        explicit strong_type(Ty value) noexcept : value_(value) {}
+        explicit operator Ty() const noexcept { return value_; }
+    };
 }

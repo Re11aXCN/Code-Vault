@@ -3,7 +3,7 @@
 FILE(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS ./*.cpp ./*.h)
 
 add_executable(${PROJECT_NAME} 
-    ${PROJECT_SOURCES}
+    main.cpp
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
