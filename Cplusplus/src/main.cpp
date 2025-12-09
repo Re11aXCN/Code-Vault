@@ -25,8 +25,13 @@
 #include "leetcode/0912_sort_array.h"
 #include "math/isomath.hpp"
 #include "stdex/scope.h"
+inline constexpr decltype(auto) get_reference_correct() {
+    static int x = 42;  // 必须是static或全局
+    return (x);  // 返回 int&（括号很重要！）
+}
 int main() {
     using namespace std::literals;
     std::cout.setf(std::ios_base::boolalpha);
+    static_assert(std::same_as<decltype(get_reference_correct()), int&>);
     return 0;
 }

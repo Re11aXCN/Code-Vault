@@ -67,7 +67,7 @@ if(WIN32 AND MSVC)
         "$<$<CXX_COMPILER_ID:MSVC>:/Zc:forScope>"  # for循环范围一致性
         "$<$<CXX_COMPILER_ID:MSVC>:/Zc:inline>"    # 移除未引用函数
         "$<$<CXX_COMPILER_ID:MSVC>:/Gd>"           # __cdecl调用约定
-        "$<$<CXX_COMPILER_ID:MSVC>:/fp:precise>"   # 浮点精度
+        "$<$<CXX_COMPILER_ID:MSVC>:/fp:precise>"   # 浮点精度 default, debug下是精确， release是快速，或则设置/fp:fast or /fp:strict保持一致
         "$<$<CXX_COMPILER_ID:MSVC>:/FC>"           # 完整路径诊断
         "$<$<CXX_COMPILER_ID:MSVC>:/await:strict>"
     )
