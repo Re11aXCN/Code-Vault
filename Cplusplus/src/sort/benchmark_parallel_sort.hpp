@@ -85,6 +85,70 @@ auto quick_sort([[maybe_unused]] _Pa&& para, _Ty* data, std::size_t size) -> voi
     quick_sort(std::forward<_Pa>(para), data, size, std::less<_Ty>{});
 }
 
+
+
+namespace detail {
+    template<typename RandomIt, typename Compare>
+    void sift_down(RandomIt first, typename std::iterator_traits<RandomIt>::difference_type start,
+        typename std::iterator_traits<RandomIt>::difference_type end, Compare comp) {
+        using difference_type = typename std::iterator_traits<RandomIt>::difference_type;
+        difference_type root = start;
+
+        while (root * 2 + 1 <= end) {  // 当根节点有至少一个子节点时
+            difference_type child = root * 2 + 1;  // 左子节点
+            difference_type swap_idx = root;
+
+            // 比较左子节点
+            if (comp(*(first + swap_idx), *(first + child))) {
+                swap_idx = child;
+            }
+
+            // 检查右子节点
+            if (child + 1 <= end && comp(*(first + swap_idx), *(first + (child + 1)))) {
+                swap_idx = child + 1;
+            }
+
+            // 如果最大元素已经在根位置，结束
+            if (swap_idx == root) {
+                return;
+            }
+
+            // 交换并继续向下调整
+            std::iter_swap(first + root, first + swap_idx);
+            root = swap_idx;
+        }
+    }
+}
+
+// 堆排序主函数
+template<typename RandomIt, typename Compare = std::less<>>
+void heap_sort(RandomIt first, RandomIt last, Compare comp = Compare{}) {
+    static_assert(std::is_base_of_v<std::random_access_iterator_tag,
+        typename std::iterator_traits<RandomIt>::iterator_category>,
+        "heap_sort requires random access iterators");
+
+    if (first == last || std::next(first) == last) {
+        return;  // 空或单元素范围
+    }
+
+    using difference_type = typename std::iterator_traits<RandomIt>::difference_type;
+    const difference_type n = std::distance(first, last);
+
+    // 构建最大堆（最大堆用于升序排序）
+    // 从最后一个非叶子节点开始
+    for (difference_type start = n / 2 - 1; start >= 0; --start) {
+        detail::sift_down(first, start, n - 1, comp);
+    }
+
+    // 逐个提取元素
+    for (difference_type end = n - 1; end > 0; --end) {
+        // 将当前最大值（堆顶）移到末尾
+        std::iter_swap(first, first + end);
+        // 调整剩余堆
+        detail::sift_down(first, 0, end - 1, comp);
+    }
+}
+
 template <typename _Ty>
 auto shell_sort(_Ty* data, std::size_t size) -> void
 {
@@ -167,6 +231,14 @@ static auto benchmark_sort() -> void
     TICK(shell_sort)
     shell_sort(arr3.data(), arr3.size());
     TOCK(shell_sort)
+
+    //TICK(heap_sort)
+    //heap_sort(arr3.begin(), arr3.end());
+    ///*
+    //* std::make_heap(arr3.begin(), arr3.end());
+    //* std::sort_heap(arr3.begin(), arr3.end());
+    //*/
+    //TOCK(heap_sort)
 
     // tbb有缓存，如果上述开启parallel_invoke, 并行sort那么这里速度将会非常快
     TICK(tbb_parallel_sort)

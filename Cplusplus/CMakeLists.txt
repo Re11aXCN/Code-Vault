@@ -85,26 +85,29 @@ if(WIN32 AND MSVC)
     add_compile_options(
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/GS>"    # 缓冲区安全检查
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/Qpar>"  # 自动并行化
+        # https://learn.microsoft.com/zh-cn/cpp/build/reference/arch-x64?view=msvc-170
+        "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/arch:AVX2>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/GL>"    # 全程序优化
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/Gy>"    # 函数级链接
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>"    # 最大化速度
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/Ob2>"   # 内联任何合适函数
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/sdl>"   # SDL检查
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/Oi>"    # 内建函数
-        "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/openmp>" # OpenMP支持
+        "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/openmp:experimental>" # OpenMP支持
     )
     
     # RelWithDebInfo配置
     add_compile_options(
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/GS>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/Qpar>"
+        "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/arch:AVX2>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/GL>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/Gy>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/O2>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/Ob2>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/sdl>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/Oi>"
-        "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/openmp>"
+        "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/openmp:experimental>"
         "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:RelWithDebInfo>>:/Zi>"  # 调试信息
     )
     

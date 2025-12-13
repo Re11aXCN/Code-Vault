@@ -1,46 +1,74 @@
 ﻿#include <array>
 #include <type_traits>
 namespace stdex {
-    template <typename T, std::size_t N, std::size_t... Is>
-    constexpr auto make_array_impl(T&& value, std::index_sequence<Is...>) {
-        // remove cvref from T
-        // 逗号运算符：返回最后一个表达式的结果（std::forward<T>(value)）
-        return std::array<std::decay_t<T>, N>{ (static_cast<void>(Is), std::forward<T>(value))... };
-        /*
-         return std::array<std::decay_t<T>, N>{ 
-            (void)Is...,  // 展开并丢弃所有Is
-            std::forward<T>(value)  // 最后一个值用作初始化
-        };
-        // like this:
-        return std::array<int, 3>{
-            (static_cast<void>(0), std::forward<T>(value)), // 类似宏的"挤兑"
-            (static_cast<void>(1), std::forward<T>(value)),
-            (static_cast<void>(2), std::forward<T>(value))
-        };
-        */
-    }
-
-    template <typename T, std::size_t N>
-    [[nodiscard]] constexpr auto make_array(T&& value) {
-        return make_array_impl<T, N>(std::forward<T>(value), std::make_index_sequence<N>());
-    }
-
-    template<typename T>
-    [[nodiscard]] constexpr T& as_mutable(T const& t) noexcept {
-        return const_cast<T&>(t);
-    }
-
-    template<typename T> requires (!std::is_lvalue_reference_v<T>)
-    [[nodiscard]]  constexpr T& as_mutable(T&& t) noexcept {
-        return const_cast<T&>(t);
-    }
-
-    template<typename Class, typename Ty>
-    struct strong_type {
-    protected:
-        Ty value_;
-    public:
-        explicit strong_type(Ty value) noexcept : value_(value) {}
-        explicit operator Ty() const noexcept { return value_; }
-    };
+template <typename T, std::size_t N, std::size_t... Is>
+constexpr auto make_array_impl(T &&value, std::index_sequence<Is...>) {
+  // remove cvref from T
+  // 逗号运算符：返回最后一个表达式的结果（std::forward<T>(value)）
+  return std::array<std::decay_t<T>, N>{
+      (static_cast<void>(Is), std::forward<T>(value))...};
+  /*
+   return std::array<std::decay_t<T>, N>{
+      (void)Is...,  // 展开并丢弃所有Is
+      std::forward<T>(value)  // 最后一个值用作初始化
+  };
+  // like this:
+  return std::array<int, 3>{
+      (static_cast<void>(0), std::forward<T>(value)), // 类似宏的"挤兑"
+      (static_cast<void>(1), std::forward<T>(value)),
+      (static_cast<void>(2), std::forward<T>(value))
+  };
+  */
 }
+
+template <typename T, std::size_t N>
+[[nodiscard]] constexpr auto make_array(T &&value) {
+  return make_array_impl<T, N>(std::forward<T>(value),
+                               std::make_index_sequence<N>());
+}
+
+template <typename T>
+[[nodiscard]] constexpr T &as_mutable(T const &t) noexcept {
+  return const_cast<T &>(t);
+}
+
+template <typename T>
+  requires(!std::is_lvalue_reference_v<T>)
+[[nodiscard]] constexpr T &as_mutable(T &&t) noexcept {
+  return const_cast<T &>(t);
+}
+
+template <typename Class, typename Ty> struct strong_type {
+protected:
+  Ty value_;
+
+public:
+  explicit strong_type(Ty value) noexcept : value_(value) {}
+  explicit operator Ty() const noexcept { return value_; }
+};
+
+// 先进的boost::hash_combine 的方法，可适用于tuple、array
+template <class ...Ts>
+conseexpr std::size_t hash_combine(Ts const &...ts) {
+    std::size_t h = 0;
+    ((h ^= std::hash<Ts>()(ts) + 0x9e3779b9 + (h << 6) + (h >> 2)), ...);
+    return h;
+}
+template <class ...Ts>
+struct std::hash<std::tuple<Ts...>> {
+    size_t operator()(std::tuple<Ts...> const& x) const {
+        return std::apply(hash_combine<Ts...>, x);
+    }
+};
+template <class T, size_t N>
+struct std::hash<std::array<T, N>> {
+    size_t operator()(std::array<T, N> const& x) const {
+        std::hash<T> hasher;
+        size_t h = 0;
+        for (T const& t : x) {
+            h ^= hasher(t);
+        }
+        return h;
+    }
+};
+} // namespace stdex
