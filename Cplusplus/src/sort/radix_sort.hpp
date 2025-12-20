@@ -171,10 +171,10 @@ void radix_sort_impl(std::execution::sequenced_policy, ContigIter First, ContigI
         std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>,
         Key_t>
     >;
-
-    Value_t* Ptr = &*First;
+    
     std::size_t Size = std::distance(First, Last);
-    if (Size <= 1) return;
+    if (Size <= 1) [[unlikely]] return;
+    Value_t* Ptr = &*First;
 
     constexpr std::uint8_t Passes = Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
     constexpr std::uint8_t Shift = Bucket_size == 256U ? 3 : 4; // 8 or 16
@@ -364,9 +364,9 @@ void radix_sort_impl_floating_point_NaN(std::execution::parallel_policy, ContigI
 
     using Unsigned_t = std::make_unsigned_t<std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>>;
 
-    Value_t* Ptr = &*First;
     std::size_t Size = std::distance(First, Last);
-    if (Size <= 1) return;
+    if (Size <= 1) [[unlikely]] return;
+    Value_t* Ptr = &*First;
 
     constexpr std::uint8_t Passes = Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
     constexpr std::uint8_t Shift = Bucket_size == 256U ? 3 : 4;
@@ -693,10 +693,10 @@ void radix_sort_impl(std::execution::parallel_policy, ContigIter First, ContigIt
         std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>,
         Key_t>
     >;
-
-    Value_t* Ptr = &*First;
+    
     std::size_t Size = std::distance(First, Last);
-    if (Size <= 1) return;
+    if (Size <= 1) [[unlikely]] return;
+    Value_t* Ptr = &*First;
 
     constexpr std::uint8_t Passes = Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
     constexpr std::uint8_t Shift = Bucket_size == 256U ? 3 : 4;

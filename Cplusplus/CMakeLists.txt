@@ -48,7 +48,7 @@ if(WIN32 AND MSVC)
 
     # 通用MSVC 宏设置
     add_compile_definitions(_UNICODE UNICODE _WIN32_WINNT=0x0601 NOMINMAX _USE_MATH_DEFINES)
-
+    
     # 字符集设置
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
