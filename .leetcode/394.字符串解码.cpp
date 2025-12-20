@@ -30,16 +30,25 @@ public:
                 curr_str.clear();
             }
             else if (c == ']') {
-                auto & dec_str_data = stk.top();
-                int repeat = dec_str_data.bra_str_repeat;
+                // auto & dec_str_data = stk.top();
+                // int repeat = dec_str_data.bra_str_repeat;
 
-                // 生成重复字符串并拼接前序字符串
-                std::string repeat_str; repeat_str.reserve(repeat * curr_str.size());
+                // // 生成重复字符串并拼接前序字符串
+                // std::string repeat_str; repeat_str.reserve(repeat * curr_str.size());
+                // #pragma GCC unroll 4
+                // for(int i = 0; i < repeat; ++i) repeat_str += curr_str;
+                // curr_str = std::move(dec_str_data.bra_prev_str + repeat_str);
+
+                // stk.pop();
+                auto [repeat, prev_str] = std::move(stk.back());
+                stk.pop_back();
+
+                std::string repeat_str; 
+                repeat_str.reserve(prev_str.size() + repeat * curr_str.size());
+                repeat_str += prev_str;
                 #pragma GCC unroll 4
                 for(int i = 0; i < repeat; ++i) repeat_str += curr_str;
-                curr_str = std::move(dec_str_data.bra_prev_str + repeat_str);
-
-                stk.pop();
+                curr_str = std::move(repeat_str);
             }
             else {
                 curr_str.push_back(c); // 收集当前层字符

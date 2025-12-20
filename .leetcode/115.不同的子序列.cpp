@@ -17,7 +17,7 @@ public:
         
         for (int i = 1; i <= sLen; ++i) {
             // 从后往前遍历，避免覆盖需要的数据
-            #pragma clang loop interleave(enable) unroll_count(8)
+            #pragma clang loop unroll_count(8)
             // 内层循环从min(i, tLen)到1，减少不必要的计算，max确保剩余字符足够完成匹配
             for (int j = std::min(i, tLen); j >= std::max(tLen - sLen + i, 1); --j) {
                 if (s[i - 1] == t[j - 1]) {

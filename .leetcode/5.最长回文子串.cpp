@@ -1,3 +1,31 @@
+class Solution {
+public:
+    string longestPalindrome(string s) {
+        int sLen = s.size();
+
+        int longestStart{ 0 }, longestLen{ 1 };
+        for(int center = 0; center < sLen; ++center) {
+            int left = center, right = center;
+            #pragma GCC unroll 8
+            while(left >= 0 && right < sLen && s[left] == s[right++]) {
+                if (int currLen = right - left; currLen > longestLen) {
+                    longestStart = left, longestLen = currLen;
+                }
+                --left;
+            }
+
+            left = center, right = center + 1;
+            #pragma GCC unroll 8
+            while(left >= 0 && right < sLen && s[left] == s[right++]) {
+                if (int currLen = right - left; currLen > longestLen) {
+                    longestStart = left, longestLen = currLen;
+                }
+                --left;
+            }
+        }
+        return s.substr(longestStart, longestLen);
+    }
+};
 /*
  * @lc app=leetcode.cn id=5 lang=cpp
  *

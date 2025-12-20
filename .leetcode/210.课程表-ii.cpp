@@ -1,58 +1,40 @@
 class Solution {
 public:
     vector<int> findOrder(int numCourses, vector<vector<int>>& prerequisites) {
-        vector<int> outDegree(numCourses + 1, 0);
-        vector<int> inDegree(numCourses, 0);
-        
-        #pragma GCC unroll 8
+        std::vector<int> inDegree(numCourses, 0);
+        std::vector<int> outDegree(numCourses + 1, 0);
+        #pragma omp simd
         for (auto& pre : prerequisites) {
-            ++outDegree[pre[1] + 1];
             ++inDegree[pre[0]];
+            ++outDegree[pre[1] + 1];
         }
-        
-        vector<int>& offset = outDegree;
-        #pragma GCC unroll 8
-        for (int i = 0; i < numCourses; ++i) {
-            offset[i + 1] += offset[i];
-        }
-        
-        vector<int> edges(prerequisites.size());
-        vector<int> currentPos = offset;
-        
-        #pragma GCC unroll 8
+
+        std::inclusive_scan(outDegree.begin(), outDegree.end(), outDegree.begin(), std::plus<>{});
+
+        std::vector<int> edges(prerequisites.size());
+        std::vector<int> currPos = outDegree;
+        #pragma clang loop interleave(enable) unroll_count(8)
         for (auto& pre : prerequisites) {
-            int u = pre[1];
-            int v = pre[0];
-            edges[currentPos[u]++] = v;
+            edges[currPos[pre[1]]++] = pre[0];
         }
-        
-        vector<int>& queue = currentPos;
-        int front = 0, rear = 0;
-        
-        #pragma GCC unroll 8
-        for (int i = 0; i < numCourses; ++i) {
-            if (inDegree[i] == 0) queue[rear++] = i;
-        }
+
+        std::vector<int>& queue = currPos;
         queue.pop_back();
-        
-        int processed = 0;
-        vector<int> result;
-        result.reserve(numCourses);
-        while (front < rear) {
+        int front = 0, back = 0;
+        #pragma clang loop unroll_count(8)
+        for (int i = 0; i < numCourses; ++i) {
+            if (inDegree[i] == 0) queue[back++] = i;
+        }
+
+        while (front < back) {
             int u = queue[front++];
-            result.push_back(u);
-            ++processed;
-            
-            #pragma GCC unroll 8
-            for (int i = offset[u]; i < offset[u + 1]; ++i) {
+            #pragma clang loop unroll_count(4)
+            for (int i = outDegree[u]; i < outDegree[u + 1]; ++i) {
                 int v = edges[i];
-                if (--inDegree[v] == 0) {
-                    queue[rear++] = v; 
-                }
+                if (--inDegree[v] == 0) queue[back++] = v;
             }
         }
-        
-        return processed == numCourses ? result : vector<int>{};
+        return front == numCourses ? queue : std::vector<int>{};
     }
 };
 

@@ -1,4 +1,29 @@
-﻿class Solution {
+﻿    string minWindow(string s, string t) {
+        int sLen = s.size(), tLen = t.size();
+        if (tLen > sLen) return {};
+
+        std::array<int, 128> mainWind{}, patternWind{};
+        int miniSubstrPos{ 0 }, miniSubstrLen{ INT_MAX }, patternValid{ 0 }, mainValid{ 0 };
+
+        for (char c : t) if (++patternWind[c] == 1) ++patternValid;
+        
+        for (int left = 0, right = 0; right < sLen; ++right) {
+            char add = s[right];
+            if (patternWind[add] > 0 && ++mainWind[add] == patternWind[add]) ++mainValid;
+
+            // 考虑AABC找 ABC情况，mainValid和patternValid都是去重的字符个数，AABC是3匹配，从左到右，left移出了最左A，得到ABC仍旧匹配进行计算
+            while (patternValid == mainValid) {
+                if (int currLen = right - left + 1; currLen < miniSubstrLen) { 
+                    miniSubstrLen = currLen;
+                    miniSubstrPos = left;
+                }
+                char del = s[left++];
+                if (patternWind[del] > 0 && mainWind[del]-- == patternWind[del]) --mainValid;
+            }
+        }
+        return miniSubstrLen == INT_MAX ? std::string{} : s.substr(miniSubstrPos, miniSubstrLen);
+    }
+class Solution {
 public:
     string minWindow(string s, string t) {
         size_t sLen{ s.size() }, tLen{ t.size() };
@@ -60,29 +85,24 @@ public:
         if(sLen < tLen) return {};
 
         std::array<int, 128> count{};
-        
+        int miniSubstrPos{ 0 }, miniSubstrLen{ INT_MAX }, patternValid{ 0 }, mainValid{ 0 };
         #pragma clang loop unroll_count(8)
-        for(char c : t) ++count[c];
-        
-        size_t required{ 0 }, valid{ 0 }, start{ 0 }, minLen{ INT_MAX };
-
-        #pragma clang loop unroll_count(8)
-        for (int i = 0; i < 128; ++i) if (count[i] > 0) ++required;
+        for(char c : t) if (++count[c] == 1) ++patternValid;
 
         #pragma clang loop unroll_count(4)
         for(size_t left = 0, right = 0; right < sLen; ++right) {
-            if (--count[s[right]] == 0) ++valid;
+            if (--count[s[right]] == 0) ++mainValid;
 
-            while (valid == required) {
-                if (int currLen = right - left + 1; currLen < minLen) {
-                    minLen = currLen;
-                    start = left;
+            while (mainValid == patternValid) {
+                if (int currLen = right - left + 1; currLen < miniSubstrLen) { 
+                    miniSubstrLen = currLen;
+                    miniSubstrPos = left;
                 }
-                if (++count[s[left++]] > 0) --valid;
+                if (++count[s[left++]] > 0) --mainValid;
             }
         }
 
-        return minLen == INT_MAX ? std::string{} : s.substr(start, minLen);
+        return miniSubstrLen == INT_MAX ? std::string{} : s.substr(miniSubstrPos, miniSubstrLen);
     }
 };
 

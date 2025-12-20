@@ -96,140 +96,110 @@ public:
 
 // 最快基数排序，符合O(n), 排序8n + 8(256), 查找O(n), 空间 O(n) + 2 * 256
 class Solution {
-public: 
+public:
     int longestConsecutive(vector<int>& nums) {
-        if (nums.empty()) return 0;
-        
+        if (nums.empty()) [[unlikely]] return 0;
         using Iter_t = decltype(nums.begin());
-        using Value_t = typename std::iterator_traits<Iter_t>::value_type;  
-        radixsort<Iter_t, std::less<>, identity_key_extractor<Value_t>, 256U>(nums.begin(), nums.end(), {});
-
-        int currLen = 1, maxLen = currLen;
-        #pragma clang loop unroll_count(8)
-        for (auto it = std::next(nums.begin()); it != nums.end(); ++it) {
-            int prev_val = *std::prev(it);
-            if (prev_val == *it) continue;
-            if (prev_val + 1 == *it) {
-                if (++currLen > maxLen) maxLen = currLen;
-                if (maxLen * 2 >= nums.size()) break;
-            }
-            else {
-                currLen = 1;
-            }
+        using Value_t = std::iter_value_t<Iter_t>;
+        radixsort<Iter_t, std::less<>, identidy_key_extractor<int>, 256U>(nums.begin(), nums.end(), {});
+        int dummy = nums.front() - 1, currLen = 0, maxLen = 0;
+        for (int num : nums) {
+            if (dummy == num) continue;
+            if (dummy + 1 != num) currLen = 1;
+            else if (++currLen > maxLen) maxLen = currLen;
+            dummy = num;
         }
         return maxLen;
     }
-
-    template<typename T>
-    struct identity_key_extractor {
-        template<typename U>
-        constexpr auto operator()(U&& value) const noexcept
-            -> std::enable_if_t<std::is_same_v<std::decay_t<U>, T>, T>
+    template<class T>
+    struct identidy_key_extractor {
+        template<class U>
+        constexpr auto operator()(U&& value)
+            -> std::enable_if_t<std::same_as<T, std::decay_t<U>>, T>
         {
             return std::forward<U>(value);
         }
     };
 
-    template<typename ContigIter, typename Compare, typename KeyExtractor, std::uint32_t _Bucket_size>
-    requires((_Bucket_size == 256U || _Bucket_size == 65536U) && 
-             (std::is_same_v<Compare, std::less<>> || std::is_same_v<Compare, std::greater<>>))
-    void radixsort(ContigIter _First, ContigIter _Last, KeyExtractor _Extractor)
+    template<class ContigIter, class Compare, class KeyExtractor, std::uint32_t Bucket_size>
+    requires((std::same_as<Compare, std::less<>> || std::same_as<Compare, std::greater<>>) || 
+             (Bucket_size == 256U || Bucket_size == 65536U))
+    void radixsort(ContigIter First, ContigIter Last, KeyExtractor Extractor) 
     {
-        static_assert(std::contiguous_iterator<ContigIter>,
-            "Radix sort requires contiguous iterators (vector, array, raw pointers)");
-
-        using Value_t = typename std::iterator_traits<ContigIter>::value_type;
-
-        using Key_t = std::decay_t<decltype(_Extractor(std::declval<Value_t>()))>;
-        static_assert(std::is_arithmetic_v<Key_t> && !std::is_same_v<Key_t, bool>,
-            "Key type must be an arithmetic type (not bool)");
-
-        static_assert(!(_Bucket_size == 65536U && sizeof(Key_t) == 1),
-            "Radix sort with 65536 buckets is not supported for 1-byte keys");
+        static_assert(std::contiguous_iterator<ContigIter>, "");
+        using Value_t = std::iter_value_t<ContigIter>;
+        using Key_t = std::decay_t<decltype(Extractor(std::declval<Value_t>()))>;
+        static_assert(!(sizeof(Key_t) == 1 && Bucket_size == 65536U), "");
+        static_assert(std::is_arithmetic_v<Key_t> && !std::same_as<Key_t, bool>, "");
 
         using Unsigned_t = std::make_unsigned_t<
-            std::conditional_t<std::is_floating_point_v<Key_t>,
-            std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>,
-            Key_t>
+            std::conditional_t<
+                std::is_floating_point_v<Key_t>,
+                std::conditional_t<sizeof(Key_t) == 4, std::uint32_t, std::uint64_t>,
+                Key_t
+            >
         >;
 
-        Value_t* _Ptr = &*_First;
-        std::size_t _Size = std::distance(_First, _Last);
-        if (_Size <= 1) return;
-
-        constexpr std::uint8_t _Passes = _Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
-        constexpr std::uint8_t _Shift = _Bucket_size == 256U ? 3 : 4; // 8 or 16
-        constexpr std::uint16_t _Mask = _Bucket_size - 1; // 0xFF for 8-bit, 0xFFFF for 16-bit, etc.
-        constexpr bool _Is_Descending = std::is_same_v<Compare, std::greater<>>;
-
-        /*static */std::array<std::size_t, _Bucket_size> _Bucket_count;
-        /*static */std::array<std::size_t, _Bucket_size> _Scanned;
-
-        std::vector<Value_t> _Buffer(_Size);
-
-        Value_t* __restrict _Start = _Ptr;
-        Value_t* __restrict _End = _Buffer.data();
-
-        for (std::uint8_t _Pass = 0; _Pass < _Passes; ++_Pass) {
-            std::fill(_Bucket_count.begin(), _Bucket_count.end(), 0);
-  
-            for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
-                Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Start[_Idx]));
-
-                if constexpr (std::is_signed_v<Key_t>) {
-                    if constexpr (std::is_floating_point_v<Key_t>) {
-                        if constexpr (sizeof(Key_t) == 4)
-                            _Unsigned_value ^= (_Unsigned_value < 0) ? 0xFFFF'FFFFU : 0x8000'0000U;
-                        else
-                            _Unsigned_value ^= (_Unsigned_value < 0) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
-                    }
-                    else {
-                        if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                        else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                        else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                        else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
-                    }
-                }
-
-                std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
-
-                if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
-
-                ++_Bucket_count[_Byte_idx];
-            }
-
-            std::exclusive_scan(_Bucket_count.begin(), _Bucket_count.end(), _Scanned.begin(), 0, std::plus<>{});
-            
-            for (std::size_t _Idx = 0; _Idx < _Size; ++_Idx) {
-                auto _Value = _Start[_Idx];
-                Unsigned_t _Unsigned_value = std::bit_cast<Unsigned_t>(_Extractor(_Value));
-
-                if constexpr (std::is_signed_v<Key_t>) {
-                    if constexpr (std::is_floating_point_v<Key_t>) {
-                        if constexpr (sizeof(Key_t) == 4)
-                            _Unsigned_value ^= (_Unsigned_value < 0) ? 0xFFFF'FFFFU : 0x8000'0000U;
-                        else
-                            _Unsigned_value ^= (_Unsigned_value < 0) ? 0xFFFF'FFFF'FFFF'FFFFULL : 0x8000'0000'0000'0000ULL;
-                    }
-                    else {
-                        if constexpr (sizeof(Key_t) == 1) _Unsigned_value ^= 0x80U;
-                        else if constexpr (sizeof(Key_t) == 2) _Unsigned_value ^= 0x8000U;
-                        else if constexpr (sizeof(Key_t) == 4) _Unsigned_value ^= 0x8000'0000U;
-                        else if constexpr (sizeof(Key_t) == 8) _Unsigned_value ^= 0x8000'0000'0000'0000ULL;
-                    }
-                }
-
-                std::uint16_t _Byte_idx = (_Unsigned_value >> (_Pass << _Shift)) & _Mask;
-
-                if constexpr (_Is_Descending) _Byte_idx = _Mask - _Byte_idx;
-
-                _End[_Scanned[_Byte_idx]++] = _Value;
-            }
-            
-            std::swap(_Start, _End);
-        }
         
-        if constexpr (sizeof(Key_t) == 1) std::copy_n(_Start, _Size, _Ptr);
+        std::size_t Size = std::distance(First, Last);
+        if (Size <= 1) [[unlikely]] return;
+        auto* Ptr = &*First;
+
+        constexpr std::uint8_t Passes = Bucket_size == 256U ? sizeof(Key_t) : sizeof(Key_t) >> 1;
+        constexpr std::uint8_t Shift = Bucket_size == 256U ? 3 : 4;
+        constexpr std::uint16_t Mask = Bucket_size - 1;
+
+        constexpr std::uint8_t Key_bits = sizeof(Key_t) << 3;
+        constexpr Unsigned_t Sign_bit_mask = Unsigned_t{ 1 } << (Key_bits - 1);
+        constexpr Unsigned_t All_Bits_mask = ~Unsigned_t{ 0 };
+
+        constexpr bool Is_descending = std::same_as<Compare, std::greater<>>;
+
+        std::array<std::size_t, Bucket_size> Bucket_count;
+        std::array<std::size_t, Bucket_size> Scanned;
+
+        std::vector<Value_t> Buffer(Size);
+        auto* __restrict Start = Ptr;
+        auto* __restrict End = Buffer.data();
+
+        for (std::uint8_t Pass = 0; Pass < Passes; ++Pass) {
+            std::fill(Bucket_count.begin(), Bucket_count.end(), 0);
+
+            for (std::size_t Idx = 0; Idx < Size; ++Idx) {
+                Unsigned_t Unsigned_value = std::bit_cast<Unsigned_t>(Extractor(Start[Idx]));
+                if constexpr (std::is_floating_point_v<Key_t>) {
+                    Unsigned_value ^= (Unsigned_value >> (Key_bits - 1) == 0) ? Sign_bit_mask : All_Bits_mask;
+                }
+                else if constexpr (std::is_signed_v<Key_t>) {
+                    Unsigned_value ^= Sign_bit_mask;
+                }
+
+                std::uint16_t Byte_idx = (Unsigned_value >> (Pass << Shift)) & Mask;
+                if constexpr (Is_descending) Byte_idx = Mask - Byte_idx; 
+                ++Bucket_count[Byte_idx];
+            }
+
+            std::exclusive_scan(Bucket_count.begin(), Bucket_count.end(), Scanned.begin(), 0, std::plus<>{});
+
+            for (std::size_t Idx = 0; Idx < Size; ++Idx) {
+                auto Value = std::move(Start[Idx]);
+                Unsigned_t Unsigned_value = std::bit_cast<Unsigned_t>(Extractor(Value));
+                if constexpr (std::is_floating_point_v<Key_t>) {
+                    Unsigned_value ^= (Unsigned_value >> (Key_bits - 1) == 0) ? Sign_bit_mask : All_Bits_mask;
+                }
+                else if constexpr (std::is_signed_v<Key_t>) {
+                    Unsigned_value ^= Sign_bit_mask;
+                }
+
+                std::uint16_t Byte_idx = (Unsigned_value >> (Pass << Shift)) & Mask;
+                if constexpr (Is_descending) Byte_idx = Mask - Byte_idx; 
+                
+                End[Scanned[Byte_idx]++] = std::move(Value);
+            }
+
+            std::swap(Start, End);
+        }
+
+        if (sizeof(Key_t) == 1) std::move(Start, Start + Size, Ptr);
     }
 };
-

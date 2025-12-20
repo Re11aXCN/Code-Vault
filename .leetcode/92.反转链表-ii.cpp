@@ -1,3 +1,21 @@
+ListNode* reverseBetween(ListNode* head, int left, int right) {
+    ListNode dummy1(0, nullptr), dummy2(0, nullptr), * front = &dummy1;
+    front->next = head;
+    int idx = 0;
+    while(++idx != left) {
+        front = front->next;
+    }
+    ListNode* back = front->next;
+    while(idx++ <= right) {
+        ListNode* temp = back->next;
+        back->next = dummy2.next;
+        dummy2.next = back;
+        back = temp;
+    }
+    front->next->next = back;
+    front->next = dummy2.next;
+    return dummy1.next;
+}
 /*
  * @lc app=leetcode.cn id=92 lang=cpp
  *

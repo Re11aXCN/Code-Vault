@@ -40,6 +40,7 @@ public:
     
     void insert(const std::string & word) {
         TrieNode *currentNode = _root;
+        #pragma clang loop unroll_count(4)
         for (char chr : word)
         {
             // 获取字符索引
@@ -52,8 +53,13 @@ public:
             }
             // 移动到子节点
             currentNode = currentNode->children[index];
+            /*
+            Node*& child = currNode->children[index];
+            if (child == nullptr) child = new Node{};
+            currNode = child;
+            */
             // 经过该节点的字符串数量增加
-            currentNode->strSize++;
+            ++currentNode->strSize;
         }
         // 标记为单词结尾
         currentNode->isEndOfWord = true;
@@ -61,6 +67,7 @@ public:
     
     bool search(const std::string & word) {
         TrieNode *currentNode = _root;
+        #pragma clang loop unroll_count(4)
         for (char chr : word)
         {
             // 获取字符索引
@@ -72,6 +79,11 @@ public:
             }
             // 移动到子节点
             currentNode = currentNode->children[index];
+            /*
+            if (currNode = currNode->children[chr - 'a']; currNode == nullptr) {
+                return false;
+            }
+            */
         }
         // 返回是否为单词结尾
         return currentNode->isEndOfWord;
@@ -79,6 +91,7 @@ public:
     
     bool startsWith(const std::string & prefix) {
         TrieNode* node = _root;
+        #pragma clang loop unroll_count(4)
         for (char c : prefix) {
             int index = c - 'a';
             if (!node->children[index]) {
@@ -97,7 +110,7 @@ public:
             TrieNode *currentNode = _root;
             TrieNode *temp = nullptr;
             int index = 0;
-
+            #pragma clang loop unroll_count(4)
             for (char chr : word)
             {
                 // 获取字符索引

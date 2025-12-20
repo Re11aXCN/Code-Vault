@@ -8,6 +8,8 @@
 // @lc code=start
 class Solution {
 public:
+    // 拆分为两个集合，两个集合的差值尽可能小，两个集合相撞（相减）就是结果
+    // 转换为 0-1背包问题，求其中一半集合的最大重量，最后结果减掉这个集合的最大总量的一半就是结果
     int lastStoneWeightII(std::vector<int>& stones) {
         std::size_t totalSum{0};
 

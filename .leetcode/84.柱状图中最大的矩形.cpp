@@ -1,4 +1,66 @@
-﻿/*
+﻿int largestRectangleArea(vector<int>& heights) {
+   heights.emplace_back(0);
+
+   std::vector<int> stk; stk.reserve(heights.size());
+   stk.insert(stk.end(), {-1, 2});
+   int maxArea = 0;
+   for (int i = 0; i < heights.size(); ++i) {
+      while(stk.back() != -1) {
+         if (int currHeight = heights[stk.back()];
+            heights[i] < currHeight) 
+         {   
+            stk.pop_back();
+            if (int currArea = currHeight * (i - stk.back() - 1);
+               currArea > maxArea) 
+            {
+               maxArea = currArea;
+            }
+         }
+         else break;
+      }
+      stk.emplace_back(i);
+   }
+   return maxArea;
+}
+
+// 双指针
+int largestRectangleArea(std::vector<int>& heights) {
+    if (heights.empty()) return 0;
+    int n = heights.size();
+    
+    // 预处理左边界：left[i]表示i左侧第一个比heights[i]小的元素下标
+    std::vector<int> left(n, -1);
+    for (int i = 1; i < n; ++i) {
+        int j = i - 1;
+        // 跳过所有比当前柱子高的元素，直接跳转到更小的元素（剪枝）
+        while (j >= 0 && heights[j] >= heights[i]) {
+            j = left[j]; // 利用已预处理的结果，避免重复遍历
+        }
+        left[i] = j;
+    }
+    
+    // 预处理右边界：right[i]表示i右侧第一个比heights[i]小的元素下标
+    std::vector<int> right(n, n);
+    for (int i = n - 2; i >= 0; --i) {
+        int j = i + 1;
+        // 同理，跳过所有比当前柱子高的元素
+        while (j < n && heights[j] >= heights[i]) {
+            j = right[j]; // 利用已预处理的结果
+        }
+        right[i] = j;
+    }
+    
+    // 计算每个柱子的最大面积，取最大值
+    int maxArea = 0;
+    for (int i = 0; i < n; ++i) {
+        int area = heights[i] * (right[i] - left[i] - 1);
+        maxArea = std::max(maxArea, area);
+    }
+    
+    return maxArea;
+}
+
+/*
  * @lc app=leetcode.cn id=84 lang=cpp
  *
  * [84] 柱状图中最大的矩形

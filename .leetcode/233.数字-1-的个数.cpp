@@ -48,10 +48,14 @@ public:
             long long divider = i * 10;
             // 当前位左边的数字
             long long left = n / divider;
-            // 当前位右边的数字
-            long long right = n % i;
-            // 当前位的数字
-            long long digit = (n / i) % 10;
+            // 当前位的数字、当前位右边的数字
+            auto [digit, right] = std::lldiv((long long)n, i);
+            digit = digit % 10;
+            
+            // // 当前位右边的数字
+            // long long right = n % i;
+            // // 当前位的数字
+            // long long digit = (n / i) % 10;
             
             if (digit == 0) {
                 count += left * i;

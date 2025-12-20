@@ -5,7 +5,32 @@
  */
 
 // @lc code=start
+    vector<int> spiralOrder(vector<vector<int>>& matrix) {
+        int top = 0, bottom = matrix.size() - 1;
+        int left = 0, right = matrix[0].size() - 1;
+        std::vector<int> result; 
+        result.reserve(matrix.size() * matrix[0].size());
+        while (top <= bottom && left <= right) {
+            auto &mt = matrix[top], &mb = matrix[bottom];
 
+            std::copy(mt.begin() + left, mt.begin() + right + 1, std::back_inserter(result));
+            if (++top > bottom) break;
+
+            for (int i = top; i <= bottom; ++i) {
+                result.emplace_back(matrix[i][right]);
+            }
+            if (--right < left) break;
+
+            std::copy(mb.rbegin() + left + 1, mb.rbegin() + right + 2, std::back_inserter(result));
+            --bottom;
+
+            for (int i = bottom; i >= top; --i) {
+                result.emplace_back(matrix[i][left]);
+            }
+            ++left;
+        }
+        return result;
+    }
 
     vector<int> spiralOrder(vector<vector<int>>& matrix) {
         if (matrix.empty() || matrix[0].empty()) return {};

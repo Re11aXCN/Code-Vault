@@ -1,3 +1,29 @@
+class Solution {
+public:
+     int maxProduct(vector<int>& nums) {
+        int result = nums[0], prefix = 0, suffix = 0;
+
+        for(int i = 0; i < nums.size(); ++i) {
+            prefix = (prefix != 0) ? prefix * nums[i] : nums[i];
+            suffix = (suffix != 0) ? suffix * nums[nums.size() - i - 1] : nums[nums.size() - i - 1];
+
+            result = std::max({prefix, suffix, result});
+        }
+        return result;
+    }
+    int maxProduct(vector<int>& nums) {
+        int result = nums[0], posi = nums[0], nega = nums[0];
+
+        for(int i = 1; i < nums.size(); ++i) {
+            int temp = posi;
+            posi = std::max({nums[i], nums[i] * posi, nums[i] * nega});
+            nega = std::min({nums[i], nums[i] * temp, nums[i] * nega});
+            
+            result = std::max({result, posi, nega});
+        }
+        return result;
+    }
+};
 /*
  * @lc app=leetcode.cn id=152 lang=cpp
  *

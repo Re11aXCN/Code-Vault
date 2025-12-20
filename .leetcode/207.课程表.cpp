@@ -42,13 +42,12 @@ edges = [1, 2, 3, 4, 3]
 class Solution {
 public:
     bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {
-        std::vector<int> outDegree(numCourses + 1, 0);
         std::vector<int> inDegree(numCourses, 0);
-
-        #pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
-        for(auto& pre : prerequisites) {
-            ++outDegree[pre[1] + 1];
+        std::vector<int> outDegree(numCourses + 1, 0);
+        #pragma omp simd
+        for (auto& pre : prerequisites) {
             ++inDegree[pre[0]];
+            ++outDegree[pre[1] + 1];
         }
         /*
         #pragma clang loop unroll_count(8)
@@ -61,11 +60,11 @@ public:
         std::vector<int> edges(prerequisites.size());
         std::vector<int> currentPos = outDegree;
 
-        #pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
+        #pragma clang loop interleave(enable) unroll_count(8)
         for(auto& pre : prerequisites) edges[currentPos[pre[1]]++] = pre[0];
 
         std::vector<int>& queue = currentPos;
-        int front{ 0 }, back{ 0 }, count{ 0 };
+        int front{ 0 }, back{ 0 };
         #pragma clang loop vectorize(enable) unroll_count(8)
         for(int i = 0; i < numCourses; ++i) {
             if (inDegree[i] == 0) queue[back++] = i;
@@ -73,15 +72,14 @@ public:
 
         while(front < back) {
             int u = queue[front++];
-            ++count;
 
-            #pragma clang loop vectorize(enable) unroll_count(4)
+            #pragma clang loop unroll_count(4)
             for(int i = outDegree[u]; i < outDegree[u + 1]; ++i) {
                 int v = edges[i];
                 if (--inDegree[v] == 0) queue[back++] = v;
             }
         }
-        return count == numCourses;
+        return front == numCourses;
     }
 };
 

@@ -86,8 +86,8 @@ public:
         while(fast) fast = fast->next, slow = slow->next; 
         
         // 此时slow指向待删除节点的前驱
-        ListNode* toDelete = slow->next;
-        slow->next = toDelete->next;
+        ListNode* deleteNode = slow->next;
+        slow->next = deleteNode->next;
         delete deleteNode, deleteNode = nullptr; // 根据题目要求是否实际删除节点
         return dummy.next;
 #endif

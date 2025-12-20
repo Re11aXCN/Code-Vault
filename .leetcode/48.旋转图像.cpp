@@ -1,9 +1,21 @@
 ﻿class Solution {
 public:
+    void rotate(vector<vector<int>>& matrix) {
+        const int ROWS = matrix.size();
+
+        for (int i = 0; i < ROWS; ++i) {
+            auto& rowVec = matrix[i];
+            #pragma GCC unroll 4
+            for (int j = i + 1; j < ROWS; ++j) {
+                std::swap(rowVec[j], matrix[j][i]);
+            }
+            std::reverse(rowVec.begin(), rowVec.end());
+        }
+    }
     void rotate(std::vector<std::vector<int>>& matrix) {
         int n = matrix.size();
         for (int i = 0; i != n >> 1; ++i) {
-            const auto& end = n - i - 1;
+            int end = n - i - 1;
             for (int j = i; j != end; ++j) {
                 int temp = matrix[i][j];
                 auto& _1 = matrix[n - 1 - j][i];

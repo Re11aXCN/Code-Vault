@@ -1,25 +1,28 @@
-    void nextPermutation(vector<int>& nums) {
-        auto first = nums.begin();
-        auto last = nums.end();
-        auto back = last;
-        if (first == last || first == --back) return;
+// 输入：[1,3,2]   输出：[2,1,3]
+// 输入：[2,3,1]   输出：[3,1,2]
+void nextPermutation(vector<int>& nums) {
+    auto first = nums.begin(), last = nums.end();
+    auto back = last;
 
-        while(true) {
-            auto back_next = back;
-            if(*--back < *back_next) {
-                auto prev = last;
-                do { --prev; } while (*back >= *prev);
+    if (first == back || first == --back) return;
 
-                swap(*back, *prev);
-                reverse(back_next, last);
-                return;
-            }
-            if (back == first) {
-                reverse(first, last);
-                return;
-            }
+    while (true) {
+        auto back_next = back;
+        if (*--back < *back_next) {
+            auto target = last;
+            do { --target; } while ( !(*back < *target) );
+
+            std::iter_swap(back, target);
+            std::reverse(back_next, last);
+            break;
+        }
+
+        if (back == first) [[unlikely]] {
+            std::reverse(first, last);
+            break;
         }
     }
+}
 /*
  * @lc app=leetcode.cn id=31 lang=cpp
  *
