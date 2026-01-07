@@ -3,10 +3,13 @@
 FILE(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS ./*.cpp ./*.h)
 
 add_compile_definitions(STB_IMAGE_IMPLEMENTATION GLM_ENABLE_EXPERIMENTAL)
-
+include_directories(
+    ./opengl/Architecture
+)
 add_executable(${PROJECT_NAME} 
-    #main.cpp
-"opengl/Game/Snake.cpp")
+    main.cpp 
+#"opengl/LearnOpenGL/16_face_culling/16_face_culling.cpp"
+ )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     WIN32_EXECUTABLE OFF    # 在 Windows 系统中，运行时不启动控制台窗口，默认OFF
@@ -22,10 +25,11 @@ find_package(benchmark REQUIRED COMPONENTS benchmark benchmark_main HINTS ${VCPK
 find_package(glfw3 REQUIRED HINTS ${VCPKG_CMAKE_SHARED_PATH})
 find_package(glad REQUIRED HINTS ${VCPKG_CMAKE_SHARED_PATH})
 find_package(glm REQUIRED HINTS ${VCPKG_CMAKE_SHARED_PATH})
-
+find_package(assimp REQUIRED HINTS ${VCPKG_CMAKE_SHARED_PATH})
 target_include_directories(${PROJECT_NAME} PRIVATE 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${BOOST_INCLUDE_PATH}>
+    $<BUILD_INTERFACE:${VCPKG_INCLUDE_PATH}>
     $<BUILD_INTERFACE:${VCPKG_INCLUDE_PATH}>
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -37,6 +41,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     glfw
     glad::glad
     glm::glm
+    assimp::assimp
 )
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE opengl32)
@@ -73,6 +78,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(DEBUG_DLL_LIST
         "tbb12_debug.dll"
         "glfw3.dll"
+        "assimp*d.dll"
+        "poly2tri.dll"
+        "minizip.dll"
+        "zlib*.dll"
+        "pugixml.dll"
     )
     
     # 复制所有调试版DLL
@@ -88,6 +98,11 @@ else()
         "tbb12.dll"
         "benchmark*.dll"
         "glfw3.dll"
+        "assimp*.dll"
+        "poly2tri.dll"
+        "minizip.dll"
+        "zlib*.dll"
+        "pugixml.dll"
     )
     
     # 复制所有发布版DLL

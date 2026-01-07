@@ -20,13 +20,13 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib) # 动态链接库输
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib) # 静态链接库输出目录
 
 # 第三方库路径
-set(VCPKG_BIN_PATH "E:/Development/vcpkg-2025.06.13/installed/x64-windows/bin")
+set(VCPKG_BIN_PATH "E:/Development/vcpkg/installed/x64-windows/bin")
 set(VCPKG_DEBUG_BIN_PATH ${VCPKG_BIN_PATH}/../debug/bin)
 set(BOOST_INCLUDE_PATH "E:/Development/boost_1_87_0/build/include")
-set(VCPKG_INCLUDE_PATH "E:/Development/vcpkg-2025.06.13/installed/x64-windows/include")
+set(VCPKG_INCLUDE_PATH "E:/Development/vcpkg/installed/x64-windows/include")
 set(BOOST_LIBRARY_PATH "E:/Development/boost_1_87_0/build/lib")
-set(VCPKG_LIBRARY_PATH "E:/Development/vcpkg-2025.06.13/installed/x64-windows/lib/")
-set(VCPKG_CMAKE_SHARED_PATH "E:/Development/vcpkg-2025.06.13/installed/x64-windows/share")
+set(VCPKG_LIBRARY_PATH "E:/Development/vcpkg/installed/x64-windows/lib/")
+set(VCPKG_CMAKE_SHARED_PATH "E:/Development/vcpkg/installed/x64-windows/share")
 
 # 包含目录
 include_directories(
