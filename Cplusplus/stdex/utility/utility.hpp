@@ -1,0 +1,154 @@
+﻿#pragma once
+
+#include <array>
+#include <type_traits>
+
+namespace stdex {
+template<typename T, std::size_t N, std::size_t... Is>
+constexpr auto make_array_impl(T&& value, std::index_sequence<Is...>)
+{
+  // remove cvref from T
+  // 逗号运算符：返回最后一个表达式的结果（std::forward<T>(value)）
+  return std::array<std::decay_t<T>, N> { (static_cast<void>(Is),
+                                           std::forward<T>(value))... };
+  /*
+   return std::array<std::decay_t<T>, N>{
+      (void)Is...,  // 展开并丢弃所有Is
+      std::forward<T>(value)  // 最后一个值用作初始化
+  };
+  // like this:
+  return std::array<int, 3>{
+      (static_cast<void>(0), std::forward<T>(value)), // 类似宏的"挤兑"
+      (static_cast<void>(1), std::forward<T>(value)),
+      (static_cast<void>(2), std::forward<T>(value))
+  };
+  */
+}
+
+template<typename T, std::size_t N>
+[[nodiscard]] constexpr auto make_array(T&& value)
+{
+  return make_array_impl<T, N>(std::forward<T>(value),
+                               std::make_index_sequence<N>());
+}
+
+template<typename T>
+[[nodiscard]] constexpr T& as_mutable(T const& t) noexcept
+{
+  return const_cast<T&>(t);
+}
+
+template<typename T>
+requires (!std::is_lvalue_reference_v<T>)
+[[nodiscard]] constexpr T& as_mutable(T&& t) noexcept
+{
+  return const_cast<T&>(t);
+}
+
+template<typename Class, typename Ty>
+struct strong_type
+{
+protected:
+
+  Ty value_;
+
+public:
+
+  explicit strong_type(Ty value) noexcept : value_(value) { }
+
+  explicit operator Ty() const noexcept { return value_; }
+};
+
+// 先进的boost::hash_combine 的方法，可适用于tuple、array
+template<class... Ts>
+constexpr std::size_t hash_combine(Ts const&... ts)
+{
+  std::size_t h = 0;
+  ((h ^= std::hash<Ts>()(ts) + 0x9e'37'79'b9 + (h << 6) + (h >> 2)), ...);
+  return h;
+}
+
+template<class... Ts>
+struct std::hash<std::tuple<Ts...>>
+{
+  size_t operator() (std::tuple<Ts...> const& x) const
+  {
+    return std::apply(hash_combine<Ts...>, x);
+  }
+};
+
+template<class T, size_t N>
+struct std::hash<std::array<T, N>>
+{
+  size_t operator() (const std::array<T, N>& arr) const
+  {
+    std::hash<T> hasher;
+    size_t       seed = 0;
+
+    for (const auto& elem : arr) {
+      seed ^= hasher(elem) + 0x9e'37'79'b9 + (seed << 6) + (seed >> 2);
+    }
+    return seed;
+  }
+};
+}  // namespace stdex
+
+/*
+// Usage Examples:
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+
+int main() {
+    using namespace stdex;
+
+    // Example 1: make_array - Create an array filled with the same value
+    auto arr1 = make_array<int, 5>(42);
+    std::cout << "make_array: ";
+    for (auto val : arr1) std::cout << val << " ";
+    std::cout << "\n";
+
+    // Example 2: as_mutable - Remove const qualifier
+    const std::string text = "hello";
+    as_mutable(text)[0] = 'H';
+    std::cout << "as_mutable: " << text << "\n";
+
+    // Example 3: strong_type - Type-safe wrapper
+    using UserId = strong_type<class UserIdTag, int>;
+    using ProductId = strong_type<class ProductIdTag, int>;
+
+    UserId user(123);
+    ProductId product(456);
+
+    // These won't compile - type safety enforced:
+    // user = product;  // Error: different types
+    // UserId user2 = product;  // Error: different types
+
+    int userId = static_cast<int>(user);
+    std::cout << "strong_type: " << userId << "\n";
+
+    // Example 4: hash_combine - Combine multiple hash values
+    size_t h1 = hash_combine(1, 2, 3);
+    std::cout << "hash_combine(1,2,3): " << h1 << "\n";
+
+    // Example 5: Use hash_combine with std::unordered_map for tuple keys
+    std::unordered_map<std::tuple<int, int, int>, std::string> tuple_map;
+
+    tuple_map[{1, 2, 3}] = "first";
+    tuple_map[{4, 5, 6}] = "second";
+
+    std::cout << "tuple map[{1,2,3}]: " << tuple_map[{1, 2, 3}] << "\n";
+
+    // Example 6: Use hash_combine with std::unordered_map for array keys
+    std::unordered_map<std::array<int, 3>, int, std::hash<std::array<int, 3>>>
+array_map;
+
+    array_map[{1, 2, 3}] = 100;
+    array_map[{4, 5, 6}] = 200;
+
+    std::cout << "array map[{1,2,3}]: " << array_map[{1, 2, 3}] << "\n";
+
+    return 0;
+}
+*/
