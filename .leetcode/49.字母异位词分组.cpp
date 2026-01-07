@@ -1,4 +1,51 @@
-﻿class Solution {
+﻿namespace std {
+    template <size_t N>
+    struct hash<array<int, N>> {
+        size_t operator()(const array<int, N>& arr) const {
+            hash<int> hasher;
+            size_t seed = 0;
+            #pragma clang loop unroll_count(4)
+            for (int elem : arr) {
+                seed ^= hasher(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            }
+            return seed;
+        }
+    };
+}
+class Solution {
+public:
+    vector<vector<string>> groupAnagrams(vector<string>& strs) {
+        int size = strs.size(), index = 0;
+        std::vector<std::vector<std::string>> result;
+        result.reserve(size >> 1);
+        std::unordered_map<std::string, int> anagramMap;
+        // std::unordered_map<std::array<int, 26>, int> anagramMap;
+        anagramMap.reserve(size >> 1);
+
+        for (auto& str : strs) {
+            std::string key = str;
+            std::sort(key.begin(), key.end());
+            //std::array<int, 26> key{};
+            //#pragma clang loop unroll_count(4)
+            //for (char c : str) ++key[c - 'a'];
+
+            if (auto findIter = anagramMap.find(key); findIter != anagramMap.end()) {
+                result[findIter->second].push_back(str);
+            }
+            else {
+                std::vector<std::string> anagrams; anagrams.reserve(4);
+                anagrams.push_back(str);
+                result.push_back(std::move(anagrams));
+                //anagramMap.try_emplace(std::move(key), index++);
+                anagramMap.try_emplace(key, index++);
+            }
+        }
+        return result;
+    }
+};
+
+//////////////////////
+class Solution {
 public:
     vector<vector<string>> groupAnagrams(vector<string>& strs) {
         std::unordered_map<std::string, int> groupMap; groupMap.reserve(strs.size() >> 1);

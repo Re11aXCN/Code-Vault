@@ -49,7 +49,7 @@ public:
 
 // 先进的boost::hash_combine 的方法，可适用于tuple、array
 template <class ...Ts>
-conseexpr std::size_t hash_combine(Ts const &...ts) {
+constexpr std::size_t hash_combine(Ts const &...ts) {
     std::size_t h = 0;
     ((h ^= std::hash<Ts>()(ts) + 0x9e3779b9 + (h << 6) + (h >> 2)), ...);
     return h;
@@ -62,13 +62,14 @@ struct std::hash<std::tuple<Ts...>> {
 };
 template <class T, size_t N>
 struct std::hash<std::array<T, N>> {
-    size_t operator()(std::array<T, N> const& x) const {
+    size_t operator()(const std::array<T, N>& arr) const {
         std::hash<T> hasher;
-        size_t h = 0;
-        for (T const& t : x) {
-            h ^= hasher(t);
+        size_t seed = 0;
+
+        for (const auto& elem : arr) {
+            seed ^= hasher(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
-        return h;
+        return seed;
     }
 };
 } // namespace stdex

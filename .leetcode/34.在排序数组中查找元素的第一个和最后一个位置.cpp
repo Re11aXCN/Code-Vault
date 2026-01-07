@@ -1,4 +1,77 @@
 #include <vector>
+#include <iterator>
+#include <type_traits>
+
+
+    std::vector<int> searchRange(std::vector<int>& nums, int target) {
+        auto [first, last] = std::ranges::equal_range(nums, target);
+        return first == last 
+            ? std::vector<int>{ -1, -1 }
+            : std::vector<int>{ (int)(first - nums.begin()), (int)(last - 1 - nums.begin()) };
+    }
+
+std::vector<int> searchRange(std::vector<int>& nums, int target) {
+    auto [first, last] = equal_range(nums.begin(), nums.end(), target);
+    // 未找到目标值，返回{-1, -1}
+    if (first == last) {
+        return {-1, -1};
+    }
+    // 左边界：第一个等于target的索引
+    int left_idx = (int)std::distance(nums.begin(), first);
+    // 右边界：最后一个等于target的索引（last是第一个大于target的迭代器，故减1）
+    int right_idx = (int)std::distance(nums.begin(), last) - 1;
+    return {left_idx, right_idx};
+}
+
+template<class RanIter, class T>
+std::pair<RanIter, RanIter> equal_range(RanIter first, RanIter last, T target) {
+    // 移除过严的static_assert，若需类型检查可放宽约束
+    // static_assert(std::is_invocable_r_v<bool, decltype(std::less<>()), std::iter_value_t<RanIter>, T>, "Type not comparable");
+    
+    enum Range { LEFT, RIGHT };
+    // 修复：binary_search lambda显式捕获外部变量（[&] 按引用捕获所有外部使用的变量）
+    auto binary_search = [&] <Range range, class Func> (Func&& func) 
+    {
+        // 修复：避免空迭代器prev错误，先判断是否为空区间
+        if (first == last) [[unlikely]] return;
+		
+        // 修复：初始边界调整，仅当区间非空时使用prev(last)
+        auto left = first;
+        auto right = std::prev(last);
+        while (left <= right) {
+            auto mid = left + (right - left) / 2;
+            if (auto num = *mid; num == target) {
+                if constexpr (range == Range::LEFT) {
+                    right = std::prev(mid); // 向左收缩，查找第一个target
+                } else {
+                    left = std::next(mid);  // 向右收缩，查找最后一个target
+                }
+                func(mid);
+            } else if (num < target) {
+                left = std::next(mid);
+            } else {
+                right = std::prev(mid);
+            }
+        }
+    };
+
+    RanIter rangeIt1 = last;  // 第一个等于target的迭代器
+    RanIter rangeIt2 = last;  // 最后一个等于target的迭代器
+    // 修复：lambda函数体语句添加分号
+	binary_search.template operator()<Range::LEFT>( [&] (auto mid) { rangeIt1 = mid; } );
+	binary_search.template operator()<Range::RIGHT>( [&] (auto mid) { rangeIt2 = mid; } );
+
+    // 处理未找到目标值的情况：返回{last, last}（左闭右开区间为空）
+    if (rangeIt1 == last) {
+        return {last, last};
+    }
+    // 标准库equal_range返回左闭右开区间[第一个target, 第一个大于target)
+    // 故第二个迭代器为rangeIt2的下一个
+    return {rangeIt1, std::next(rangeIt2)};
+}
+
+
+#include <vector>
 #include <iostream>
 using namespace std;
 

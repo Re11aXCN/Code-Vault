@@ -19,12 +19,15 @@ public:
             for (char c : str) {
                 c == '0' ? ++zeroCount : ++oneCount;
             }
+            int offset = zeroCount * (n + 1) + oneCount;
+            
             #pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
             for (int i = m; i >= zeroCount; --i) { // 两个背包
                 #pragma clang loop vectorize(enable) interleave(enable) unroll_count(8)
                 for (int j = n; j >= oneCount; --j) {
-                     int idx = i * (n + 1) + j;
-                    int prev_idx = (i - zeroCount) * (n + 1) + (j - oneCount);
+                    int idx = i * (n + 1) + j;
+                    // int prev_idx = (i - zeroCount) * (n + 1) + (j - oneCount);
+                    int pre_idx = idx - offset;
                     dp[idx] = std::max(dp[idx], dp[prev_idx] + 1);
                 }
             }

@@ -101,7 +101,7 @@ public:
         if (nums.empty()) [[unlikely]] return 0;
         using Iter_t = decltype(nums.begin());
         using Value_t = std::iter_value_t<Iter_t>;
-        radixsort<Iter_t, std::less<>, identidy_key_extractor<int>, 256U>(nums.begin(), nums.end(), {});
+        radixsort<Iter_t, std::less<>, identity_key_extractor<int>, 256U>(nums.begin(), nums.end(), {});
         int dummy = nums.front() - 1, currLen = 0, maxLen = 0;
         for (int num : nums) {
             if (dummy == num) continue;
@@ -112,7 +112,7 @@ public:
         return maxLen;
     }
     template<class T>
-    struct identidy_key_extractor {
+    struct identity_key_extractor {
         template<class U>
         constexpr auto operator()(U&& value)
             -> std::enable_if_t<std::same_as<T, std::decay_t<U>>, T>
@@ -164,7 +164,8 @@ public:
 
         for (std::uint8_t Pass = 0; Pass < Passes; ++Pass) {
             std::fill(Bucket_count.begin(), Bucket_count.end(), 0);
-
+            
+            #pragma clang loop unroll_count(8)
             for (std::size_t Idx = 0; Idx < Size; ++Idx) {
                 Unsigned_t Unsigned_value = std::bit_cast<Unsigned_t>(Extractor(Start[Idx]));
                 if constexpr (std::is_floating_point_v<Key_t>) {
@@ -181,6 +182,7 @@ public:
 
             std::exclusive_scan(Bucket_count.begin(), Bucket_count.end(), Scanned.begin(), 0, std::plus<>{});
 
+            #pragma clang loop unroll_count(8)
             for (std::size_t Idx = 0; Idx < Size; ++Idx) {
                 auto Value = std::move(Start[Idx]);
                 Unsigned_t Unsigned_value = std::bit_cast<Unsigned_t>(Extractor(Value));

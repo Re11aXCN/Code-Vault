@@ -1,18 +1,4 @@
-﻿// This is a header-only library that provides the implementation of radix sort algorithm in C++ 20.
-// 
-// <Time complexity: O( 2 * (8N or 4N or 2N) ) , Space complexity: O(N + 2 * Bucket_size)>
-// It depends on the number of bytes of the type and the Bucket_size settings - 256 or 65536.
-// 
-// The code is based on the following 
-// article:
-// https://www.geeksforgeeks.org/radix-sort/
-// video:
-// https://www.bilibili.com/video/BV1Eoh8zyEG1/
-//
-
-#pragma once
-
-// This is a header-only library that provides the implementation of radix sort
+﻿// This is a header-only library that provides the implementation of radix sort
 // algorithm in C++ 20.
 //
 // <Time complexity: O( 2 * (8N or 4N or 2N) ) , Space complexity: O(N + 2 *

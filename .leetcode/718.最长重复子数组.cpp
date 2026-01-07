@@ -37,7 +37,7 @@ public:
             for (int j = nums2.size(); j >= 1; --j) {
                 if (nums2[j - 1] != nums1[i - 1]) dp[j] = 0;// 当前元素不相等，公共长度为0
                 // 当前元素相等，公共长度 = 左上角值 + 1
-                else if((dp[j] = dp[j - 1] + 1) > result) result = dp[j];
+                else if(int val = (dp[j] = dp[j - 1] + 1); val > maxLen) maxLen = val;
                 /*
                 if (nums2[j - 1] == nums1[i - 1]) {
                     if((dp[j] = dp[j - 1] + 1) > result) result = dp[j];

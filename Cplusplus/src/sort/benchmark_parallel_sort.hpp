@@ -549,21 +549,21 @@ void hoare_quick_sort_with_insert(RanIter start, RanIter end, Compare comp, Inse
     if (comp(*right, *left)) std::iter_swap(right, left);
     if (comp(*right, *mid)) std::iter_swap(right, mid);
 
-    auto pivot_val = *mid;
     auto pivot_pos = std::prev(right);
-    std::iter_swap(mid, pivot_pos);
+	std::iter_swap(mid, pivot_pos);
+	auto& pivot_val = *pivot_pos;
 
-    auto i = left, j = pivot_pos;
+    auto i = std::prev(left), j = pivot_pos;
     while (true) {
-        do { ++i; } while (i < right && comp(*i, pivot_val));
-        do { --j; } while (j > left && comp(pivot_val, *j));
+        do { ++i; } while (comp(*i, pivot_val));
+        do { --j; } while (j >= left && comp(pivot_val, *j));
         if (i >= j) break;
         std::iter_swap(i, j);
     }
 
     std::iter_swap(i, pivot_pos);
 
-    if (std::distance(left, i) < std::distance(i, right)) {
+    if (std::distance(left, i) <= std::distance(i, right)) {
         hoare_quick_sort_with_insert(left, i, comp, insert_sort_func);
         hoare_quick_sort_with_insert(std::next(i), end, comp, insert_sort_func);
     }

@@ -3,6 +3,7 @@ private:
     template<typename BiIter, typename Compare>
     void insert_sort(BiIter start, BiIter end, Compare comp)
     {
+        if (first == last) [[unlikely]] return;
         #pragma GCC unroll 8
         for (auto current = std::next(start); current != end; ++current)
         {
@@ -31,23 +32,35 @@ private:
         }
 
         // 三数取中法选择枢轴, 确保 left ≤ mid ≤ right, 防止有序情况分布不均匀
-        auto left = start, right = std::prev(end);
-        auto mid = start + ((right - left) >> 1);
-
+        auto left = first, right = std::prev(last), mid = left + (right - left) / 2;
         if (comp(*mid, *left)) std::iter_swap(mid, left);
         if (comp(*right, *left)) std::iter_swap(right, left);
         if (comp(*right, *mid)) std::iter_swap(right, mid);
 
-        auto pivot_val = *mid;
         // 优化分区循环的边界检查，如果不移动枢轴 需要额外处理枢轴位置 要跳过枢轴本身
         auto pivot_pos = std::prev(right); // 倒数第二个位置
         std::iter_swap(mid, pivot_pos); // 将枢轴放到倒数第二个位置
+        auto& pivot_val = *pivot_pos;
+        /*
+1. 使用 j >= left 的情况：
+    当 j == left 时，条件为真，会检查 comp(pivot_val, *left)
+    如果 comp(pivot_val, *left) 为真，j 会继续减1，导致 j < left（越界）
+    在您的实现中，由于有三数取中保证 *left <= pivot_val，所以 comp(pivot_val, *left) 为假，循环会停止
+    优点：检查了 left 位置的元素，确保划分完整性
+    风险：如果未来修改代码（如去掉三数取中），可能导致越界
 
+2. 使用 j > left 的情况：
+    当 j == left 时，条件为假，循环立即停止
+    j 不会减到 left 之前，避免了越界风险
+    在您的三数取中保证下，left 位置的元素不会被错误处理
+    优点：更安全，避免越界
+    缺点：不检查 left 位置的元素（但在当前实现中这不是问题）
+        */
         // left(i) ≤ pivot_pos(j) ≤ right, 已有序情况下，我们从i的next，j的prev开始
-        auto i = left, j = pivot_pos;
+        auto i = std::prev(left), j = pivot_pos;
         while (true) {
-            do { ++i; } while (i < right && comp(*i, pivot_val)); // 找比枢轴大
-            do { --j; } while (j > left && comp(pivot_val, *j)); // 找比枢轴小
+            do { ++i; } while (comp(*i, pivot_val)); // 找比枢轴大
+            do { --j; } while (j > left && comp(j >= left && pivot_val, *j)); // 找比枢轴小
             if (i >= j) break;
             std::iter_swap(i, j);
         }

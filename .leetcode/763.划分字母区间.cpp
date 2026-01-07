@@ -3,19 +3,17 @@
 class Solution {
 public:
     std::vector<int> partitionLabels(std::string s) {
-        static std::array<int, 26> alpha;
-        #pragma GCC unroll 4
-        for(int i = 0; i < s.size(); ++i)  alpha[s[i] - 'a'] = i;
-
+        static std::array<int, 26> indices{};
+        #pragma clang loop unroll_count(8)
+        for (int i = 0; i < s.size(); ++i) indices[s[i] - 'a'] = i;
         std::vector<int> result;
-        int left{0}, right{0};
-        #pragma GCC unroll 4
-        for(int i = 0; i < s.size(); ++i) {
-            right = std::max(right, alpha[s[i] - 'a']);
 
-            if(i == right) {
-                result.push_back(right - left + 1);
-                left = i + 1;
+        #pragma clang loop unroll_count(8)
+        for (int left = 0, right = 0, partMaxIdx = 0; right < s.size(); ++right) {
+            if (int val = indices[s[right] - 'a']; val > partMaxIdx) partMaxIdx = val;
+            if (right == partMaxIdx) {
+                result.emplace_back(right - left + 1);
+                left = right + 1;
             }
         }
         return result;
