@@ -1,3 +1,37 @@
+# Header
+
+```C++
+// C++98、C++03和C++11标准化的头文件
+#include <cassert>
+// #include <ccomplex> // deprecated in C++20
+#include <cctype>
+#include <cerrno>
+#include <cfenv>
+#include <cfloat>
+#include <cinttypes>
+// #include <ciso646> // deprecated in C++20
+#include <climits>
+#include <clocale>
+#include <cmath>
+#include <csetjmp>
+#include <csignal>
+// #include <cstdalign> // deprecated in C++17
+#include <cstdarg>
+// #include <cstdbool> // deprecated in C++17
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+// #include <ctgmath> // deprecated in C++17
+#include <ctime>
+#include <cuchar>
+#include <cwchar>
+#include <cwctype>
+```
+
+
+
 # 一、cassert
 
 ## 1. 介绍
@@ -18,7 +52,7 @@
             (_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0)) \
         )
 
-// 如果assert判断的expression是false，程序会中断abort
+// 如果assert判断的expression是false，程序会中断abort。在发布版本中可能会禁用。
 // 否则正常执行
 ```
 
@@ -1541,6 +1575,8 @@ encode_salt(char *salt, u_int8_t *csalt, char minor, u_int16_t clen, u_int8_t lo
 - `int atexit(void (*func)(void))` : 注册在程序正常终止时调用的函数
 - `int at_quick_exit(void (*func)(void))` : 注册在程序快速终止时调用的函数
 - `void quick_exit(int status)` : 快速终止程序，执行已注册的快速终止函数
+
+> **abort会立即终止程序，exit会也会终止程序，但还会执行所有全局对象和局部静态对象的析构函数，注意的是他们都不会调用局部非静态对象的析构函数**
 
 ## 2. 使用示例
 
