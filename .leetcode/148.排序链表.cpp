@@ -6,7 +6,9 @@ public:
         
         // 使用快慢指针找到链表中点
         ListNode* slow = head;
-        ListNode* fast = head->next;
+        // 常规的fast是head，1 2 3 4偶数落在3（划分不均匀1 2 3 | 4），1 2 3 4 5奇数落在3（划分均匀1 2 3 | 4 5）
+        // 所以得抢跑1，偶数（1 2 | 3 4），奇数（1 2 | 3 4 5）
+        ListNode* fast = head->next; 
         
         while (fast && fast->next) {
             slow = slow->next;
@@ -14,15 +16,16 @@ public:
         }
         
         // 分割链表
-        ListNode* mid = slow->next;
+        fast = slow->next;
         slow->next = nullptr;
-        
+        slow = head;
+
         // 递归排序两个子链表
-        ListNode* left = sortList(head);
-        ListNode* right = sortList(mid);
+        slow = sortList(slow);
+        fast = sortList(fast);
         
         // 合并两个有序链表
-        return merge(left, right);
+        return merge(slow, fast);
     }
     
 private:

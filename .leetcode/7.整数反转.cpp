@@ -15,7 +15,23 @@ public:
         }
         return isNegative ? -result : result;
     }
-    
+    int reverse(int x) {
+        bool is_negative { x < 0 };
+        if (is_negative) {
+            if (x == INT_MIN) return 0;
+            x = -x;
+        }
+        constexpr int int_max_div10 = INT_MAX / 10; // 214748364 7
+        int reverse_num { 0 };
+        while (x > 0) {
+            auto [quot, rem] = std::div(x, 10);
+            reverse_num = reverse_num * 10 + rem;
+            x = quot;
+            if (reverse_num > int_max_div10 && x != 0) [[unlikely]] return 0;
+            if (reverse_num == int_max_div10 && x > 1) [[unlikely]] return 0;
+        }
+        return is_negative ? -reverse_num : reverse_num;
+    }
     int reverse(int x) {
         int result = 0;
         if (x < 10'0000'0000 && x > -10'0000'0000) {

@@ -1,3 +1,53 @@
+TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {
+    if (preorder.empty()) return nullptr;
+    
+    TreeNode* root = new TreeNode(preorder[0]);
+    stack<TreeNode*> stk;
+    stk.push(root);
+    
+    for (int inorderIndex = 0, i = 1; i < preorder.size(); i++) {
+        TreeNode* node = stk.top();
+        if (node->val != inorder[inorderIndex]) {
+            node->left = new TreeNode(preorder[i]);
+            stk.push(node->left);
+        } else {
+            while (!stk.empty() && stk.top()->val == inorder[inorderIndex]) {
+                node = stk.top();
+                stk.pop();
+                inorderIndex++;
+            }
+            node->right = new TreeNode(preorder[i]);
+            stk.push(node->right);
+        }
+    }
+    
+    return root;
+}
+
+TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {
+    std::unordered_map<int, int> inorder_map;
+    for (int i = 0; i < inorder.size(); i++) {
+        inorder_map[inorder[i]] = i;
+    }
+    return build(preorder, 0, preorder.size() - 1, inorder, 0, inorder.size() - 1, inorder_map);
+}
+
+TreeNode* build(vector<int>& preorder, int preStart, int preEnd, 
+                vector<int>& inorder, int inStart, int inEnd,
+                unordered_map<int, int>& inorder_map) {
+    if (preStart > preEnd || inStart > inEnd) return nullptr;
+
+    TreeNode* root = new TreeNode(preorder[preStart]);
+    int rootIdx = inorder_map[root->val];
+    int leftSubtreeSize = rootIdx - inStart;
+
+    root->left = build(preorder, preStart + 1, preStart + leftSubtreeSize, 
+                        inorder, inStart, rootIdx - 1, inorder_map);
+    root->right = build(preorder, preStart + leftSubtreeSize + 1, preEnd,
+                        inorder, rootIdx + 1, inEnd, inorder_map);
+
+    return root;
+}
 /*
  * @lc app=leetcode.cn id=105 lang=cpp
  *

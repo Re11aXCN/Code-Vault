@@ -1,45 +1,38 @@
-﻿class Solution {
-public:
-    bool isPalindrome(ListNode* head) {
-        int length{0};
-
-        // 1、2步可以优化为1步及快慢指针
-        ListNode* ptr = head;
-        // 1. 链表长度
-        while (ptr) ptr = ptr->next, ++length;
-        int half = length >> 1;
-
-        // 2. 得到一半的位置
-        ptr = head;
-        while (half) ptr = ptr->next, --half;
-        if(length & 1) ptr = ptr->next;
-
-        // 3. 头插法反转后半
-        ListNode dummy(-1, nullptr);
-        ListNode* temp = nullptr;
-        while(ptr) {
-            temp = ptr->next;
-            ptr->next = dummy.next;
-            dummy.next = ptr;
-            ptr = temp;
-        }
-
-        // 4. 比较
-        half = length >> 1;
-        ptr = head;
-        temp = dummy.next;
-        while (half)
-        {
-            if(ptr->val != temp->val) return false;
-            ptr = ptr->next;
-            temp = temp->next;
-            --half;
-        }
-        /*
-            5.可做还原链表
-        */
-        return true;
+﻿bool isPalindrome(ListNode* head) {
+    if (!head || !head->next) [[unlikely]] return true;
+    ListNode *fast{head->next}, *slow{head}, *tail{nullptr};
+    while (fast && fast->next) {
+        fast = fast->next->next;
+        slow = slow->next;
     }
+    tail = slow;
+    fast = tail->next;
+    tail->next = nullptr;
+    slow = head;
+
+    ListNode dummy{0, nullptr};
+    while (fast) {
+        ListNode* fastNext = fast->next;
+        fast->next = dummy.next;
+        dummy.next = fast;
+        fast = fastNext;
+    }
+
+    fast = dummy.next;
+    while (fast) {
+        if (fast->val != slow->val) break;
+        fast = fast->next;
+        slow = slow->next;
+    }
+
+    slow = dummy.next;
+    while (slow) {
+        ListNode* slowNext = slow->next;
+        slow->next = tail->next;
+        tail->next = slow;
+        slow = slowNext;
+    }
+    return fast == nullptr;
 };
 /*
  * @lc app=leetcode.cn id=234 lang=cpp

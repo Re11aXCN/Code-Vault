@@ -1,3 +1,19 @@
+    // ologn
+    int findMin(vector<int>& nums) {
+        if (nums.front() <= nums.back()) return nums[0];
+
+        int left = 0, right = nums.size() - 1;
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+
+            if (nums[mid] > nums[right]) left = mid + 1;
+            else if (nums[mid] < nums[right] ) right = mid; // 无法保证mid是最小，有可能左边有最小值，所以赋值mid
+            else return nums[mid];
+        }
+        return 0;
+    }
+
+    // 比O(N)高效，但不是ologn
     int findMin(std::vector<int>& nums) {
         int left = 0, right = nums.size() - 1;
         

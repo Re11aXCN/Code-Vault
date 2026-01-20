@@ -38,5 +38,10 @@ public:
         return next.back() > 0 && str_len % (str_len - next.back()) == 0;
     }
 };
+bool repeatedSubstringPattern(const std::string& s) {
+    std::string str{ s + s };
+    return std::search(std::next(str.begin()), std::prev(str.end()), s.begin(), s.end())
+        != std::prev(str.end());
+}
 // @lc code=end
 

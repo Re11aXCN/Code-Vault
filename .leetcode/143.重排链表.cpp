@@ -19,10 +19,37 @@
             ListNode* temp = slow->next;
             slow->next = fast->next;
             fast->next = slow;
-            fast = fast->next->next;
+            fast = slow->next;
             slow = temp;
         }
-        if (slow) fast->next = slow;
+        fast->next = slow;
+    }
+    void reorderList(ListNode* head) {
+        ListNode* fast{head}, * slow{head}, *slowPrev{nullptr};
+        while (fast && fast->next) {
+            fast = fast->next->next;
+            slowPrev = slow;
+            slow = slow->next;
+        }
+        ListNode dummy{0, nullptr};
+        fast = slow;
+        slowPrev->next = nullptr;
+        while (fast) {
+            ListNode* fastNext = fast->next;
+            fast->next = dummy.next;
+            dummy.next = fast;
+            fast = fastNext;
+        }
+        slow = head, fast = dummy.next;
+        while (slow) {
+            if (!slow->next) [[unlikely]] slowPrev = fast;
+            ListNode* fastNext = fast->next;
+            fast->next = slow->next;
+            slow->next = fast;
+            slow = fast->next;
+            fast = fastNext;
+        }
+        slowPrev->next = fast;
     }
 /*
  * @lc app=leetcode.cn id=143 lang=cpp

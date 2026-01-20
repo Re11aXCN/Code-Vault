@@ -1,3 +1,77 @@
+/*
+为什么是 O (n) 复杂度？
+1. 数学推导
+快速选择的时间复杂度期望为 O (n)，推导过程：
+
+    第一次分区：处理 n 个元素 → O (n)
+    第二次分区：处理 n/2 个元素 → O (n/2)
+    第三次分区：处理 n/4 个元素 → O (n/4)
+    ...
+    最后一次分区：处理 1 个元素 → O (1)
+
+总时间：
+T(n)=n+2n​+4n​+...+1=2n−1=O(n)
+2. 核心原理
+
+    标准快排：每次分区后递归处理左右两个子数组，时间复杂度为 T(n)=2T(n/2)+O(n)=O(nlogn)
+    快速选择：每次分区后只递归处理一个子数组（包含目标元素的那个），时间复杂度为 T(n)=T(n/2)+O(n)=O(n)
+*/
+class Solution {
+public:
+    template<std::bidirectional_iterator BiIter, std::strict_weak_order<std::iter_value_t<BiIter>, std::iter_value_t<BiIter>> Compare>
+    void insert_sort(BiIter start, BiIter end, Compare comp)
+    {
+        if (start == end) [[unlikely]] return;
+        #pragma clang loop unroll_count(8)
+        for (auto curr = std::next(start); curr != end; ++curr) {
+            auto value = std::move(*curr);
+            auto hole = curr;
+
+            auto prev = hole;
+            while (prev > start && comp(value, *std::prev(prev))) {
+                --prev;
+                *hole = std::move(*prev);
+                hole = prev;
+            }
+            *hole = std::move(value);
+        }
+    }
+    template<std::random_access_iterator RanIter, std::strict_weak_order<std::iter_value_t<RanIter>, std::iter_value_t<RanIter>> Compare>
+    RanIter hoare_quick_select(RanIter start, RanIter end, size_t k, Compare comp)
+    {
+        const size_t size = std::distance(start, end);
+        if (size <= 24) {
+            insert_sort(start, end, comp);
+            return std::next(start, k);
+        }
+
+        auto left = start, right = std::prev(end), mid = left + (right - left) / 2;
+        if (comp(*mid, *left)) std::iter_swap(mid, left);
+        if (comp(*right, *left)) std::iter_swap(right, left);
+        if (comp(*right, *mid)) std::iter_swap(mid, right);
+
+        auto pivot_pos = std::prev(right);
+        std::iter_swap(mid, pivot_pos);
+        const auto& pivot_val = *pivot_pos;
+
+        auto i = std::prev(left), j = pivot_pos;
+        while (true) {
+            do { ++i; } while (comp(*i, pivot_val));
+            do { --j; } while (j > left && comp(pivot_val, *j));
+            if (i >= j) break;
+            std::iter_swap(i, j);
+        }
+        std::iter_swap(i, pivot_pos);
+
+        if (auto target_pos = start + k; target_pos == i) return i;
+        else if (target_pos < i) return hoare_quick_select(std::next(i), end, target_pos - (i + 1), comp);
+        else return hoare_quick_select(start, i, k, comp);
+    }
+    int findKthLargest(vector<int>& nums, int k) {
+        return *hoare_quick_select(nums.begin(), nums.end(), k - 1, std::greater<>{});
+    }
+};
+
     int findKthLargest(vector<int>& nums, int k) {
         using Iter_t = decltype(nums.begin());
         using Value_t = typename std::iterator_traits<Iter_t>::value_type;
