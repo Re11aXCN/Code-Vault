@@ -1,18 +1,4 @@
-﻿# Detect compiler type
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    message(STATUS "Compiler: MSVC")
-    set(COMPILER_MSVC TRUE)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    message(STATUS "Compiler: Clang")
-    set(COMPILER_CLANG TRUE)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    message(STATUS "Compiler: GCC")
-    set(COMPILER_GCC TRUE)
-else()
-    message(WARNING "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
-endif()
-
-# -----------------------------------------------------------------------------
+﻿# -----------------------------------------------------------------------------
 # Compiler-Specific Configuration(General)
 # -----------------------------------------------------------------------------
 if(COMPILER_MSVC)
@@ -22,22 +8,20 @@ if(COMPILER_MSVC)
     # Debug Information Format
     if(POLICY CMP0141)
         cmake_policy(SET CMP0141 NEW)
-        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT 
-            "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,
-            $<$<CONFIG:Debug>:EditAndContinue>,
-            $<$<CONFIG:RelWithDebInfo>:ProgramDatabase>>")
+        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug>:EditAndContinue>,$<$<CONFIG:RelWithDebInfo>:ProgramDatabase>>")
     endif()
-
-    # PDB Output Directories
-    set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/pdb)
-    set(CMAKE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/pdb)
 
     # General Compilation Options
     set(MSVC_COMPILE_GENERAL_OPTIONS
+        # /ifcOutput ${CMAKE_BINARY_DIR}/  # Generate interface definition file
         /utf-8                # character set
         # C strict standard consistency, disable lenient behavior, 
         # to support C20 module import it must be enabled
         /permissive-
+        
+        # C++20 Modules Support
+        /experimental:module  # Enable module support (MSVC 2019 16.8+)
+        # /std:c++latest        # Use latest C++ standard for modules
 
         /Zc:__cplusplus       # Correctly set the __cplusplus macro
         /Zc:wchar_t           # wchar_t as a primitive type
@@ -68,6 +52,7 @@ if(COMPILER_MSVC)
         /errorReport:prompt   # Error Reporting Mode
         /diagnostics:column   # Diagnostic Information Format
         /nologo
+        /Gm-                  # Disable minimal rebuild
         # https://learn.microsoft.com/zh-cn/cpp/build/reference/arch-x64?view=msvc-170
         /arch:AVX2            # Enable AVX2 instruction set
     )
@@ -91,6 +76,29 @@ else()
         set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_PROGRAM})
         set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${CCACHE_PROGRAM})
     endif()
+
+    # g++:
+    # g++ -fmodules-ts -x c++-system-header iostream
+    # g++ -fmodules-ts fig16_01.cpp -o fig16_01
+
+    
+    # msvc module file extension is ixx, clang is cppm, 
+    # clang needs to use a command to recognize the ixx suffix, like [ -x c++-module welcome.ixx ]
+    # g++ -fmodules-ts -c -x c++ deitel.math.ixx [ -x c++ ]
+
+    # clang++ (-16 may need to be removed or changed based on your clang++ version):
+    # clang++-16 -std=c++20 -x c++-system-header --precompile string -o string.pcm
+    # clang++-16 -std=c++20 -x c++-system-header --precompile iostream -o iostream.pcm
+    # clang++-16 -std=c++20 -fmodule-file=string.pcm -x c++-module welcome.ixx --precompile -o welcome.pcm
+    # clang++-16 -std=c++20 -fmodule-file=iostream.pcm fig16_03.cpp -fprebuilt-module-path=. string-pcm welcome.pcm -o fig16_03
+
+    # GCC/Clang Modules Support
+    if(COMPILER_GCC)
+        add_compile_options(-fmodules-ts -fmodule-mapper=inline)
+    elseif(COMPILER_CLANG)
+        add_compile_options(-fmodules -fmodules-ts -fbuiltin-module-map -fimplicit-module-maps -fprebuilt-module-path=${CMAKE_CURRENT_BINARY_DIR})
+    endif()
+    
     add_compile_options(
         -Wall
         -Wextra
@@ -117,7 +125,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
             "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/ZI>"     # Edit and Continue
             "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/Od>"     # Disable optimization
             "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/RTC1>"   # Runtime error checks
-            "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/Gm->"    # Disable minimal rebuild
         )
         
         # MSVC Debug link options

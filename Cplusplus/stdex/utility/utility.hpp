@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <cmath>
 #include <array>
 #include <type_traits>
 
@@ -25,11 +26,37 @@ constexpr auto make_array_impl(T&& value, std::index_sequence<Is...>)
   */
 }
 
+// 第二个版本：重复参数包直到填充N个元素
+template<typename... Args, std::size_t... Is>
+constexpr auto make_array_repeat_impl(std::index_sequence<Is...>,
+                                      Args&&... args)
+{
+  constexpr std::size_t M = sizeof...(Args);
+  using T                 = std::common_type_t<Args...>;
+
+  // 对于每个Is，选择args中的第(Is % M)个参数
+  return std::array<T, sizeof...(Is)> { [&] {
+    // 展开参数包到数组中，便于索引访问
+    T temp [] = { static_cast<T>(std::forward<Args>(args))... };
+    return temp [Is % M];
+  }()... };
+}
+
 template<typename T, std::size_t N>
 [[nodiscard]] constexpr auto make_array(T&& value)
 {
   return make_array_impl<T, N>(std::forward<T>(value),
                                std::make_index_sequence<N>());
+}
+
+template<std::size_t N, class... Args>
+[[nodiscard]] constexpr auto make_array(Args&&... args)
+{
+  static_assert(N > 0, "N must be greater than 0");
+  static_assert(sizeof...(Args) > 0, "At least one argument is required");
+
+  return make_array_repeat_impl(std::make_index_sequence<N>(),
+                                std::forward<Args>(args)...);
 }
 
 template<typename T>
@@ -91,6 +118,37 @@ struct std::hash<std::array<T, N>>
     return seed;
   }
 };
+
+template<std::floating_point T>
+inline bool compare_with_nan_at_end(T a, T b)
+{
+  if (bool a_is_nan = std::isnan(a), b_is_nan = std::isnan(b);
+      a_is_nan && b_is_nan) [[unlikely]]
+  {
+    return false;  // 所有 NaN 相等，排序时相对位置不变
+  } else if (a_is_nan) [[unlikely]] {
+    return false;  // a 是 NaN，b 不是 → a 应该在后面，返回 false
+  } else if (b_is_nan) [[unlikely]] {
+    return true;  // b 是 NaN，a 不是 → a 应该在前面，返回 true
+  }
+
+  return a < b;
+}
+
+template<std::floating_point T>
+inline bool compare_with_nan_at_start(T a, T b)
+{
+  if (bool a_is_nan = std::isnan(a), b_is_nan = std::isnan(b);
+      a_is_nan && b_is_nan) [[unlikely]]
+  {
+    return false;
+  } else if (a_is_nan) [[unlikely]] {
+    return true;
+  } else if (b_is_nan) [[unlikely]] {
+    return false;
+  }
+  return a < b;
+}
 }  // namespace stdex
 
 /*
