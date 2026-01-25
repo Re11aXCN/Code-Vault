@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <utility>
-
+#include <type_traits>
 namespace stdex {
 
 // Wrapper for POD types that skips default initialization
@@ -18,6 +18,12 @@ namespace stdex {
 template<typename Type>
 struct NoInitializedPod
 {
+  static_assert(
+      std::conjunction_v<std::is_trivially_copyable<Type>,
+                         std::is_trivially_default_constructible<Type>,
+                         std::is_trivially_destructible<Type>>,
+      "Type must satisfy requirements for uninitialized storage");
+
 private:
 
   Type m_Value;
@@ -25,7 +31,7 @@ private:
 public:
 
   // Default constructor - does NOT zero-initialize for POD types
-  NoInitializedPod() { }
+  NoInitializedPod() noexcept { }
 
   NoInitializedPod(const NoInitializedPod& other) : m_Value(other.m_Value) { }
 
@@ -45,6 +51,8 @@ public:
     m_Value = std::move(other.m_Value);
     return *this;
   }
+
+  ~NoInitializedPod() = default;
 
   NoInitializedPod(const Type& value) : m_Value(value) { }
 

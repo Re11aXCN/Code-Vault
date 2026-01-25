@@ -65,9 +65,6 @@ if(COMPILER_MSVC)
         -D_CRT_SECURE_NO_WARNINGS
         -D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
     )
-    add_link_options(
-        "/STACK:4194304"  # Set the stack size to 4MB
-    )
 else()
     # GCC/Clang Configuration
     find_program(CCACHE_PROGRAM ccache)
@@ -92,22 +89,82 @@ else()
     # clang++-16 -std=c++20 -fmodule-file=string.pcm -x c++-module welcome.ixx --precompile -o welcome.pcm
     # clang++-16 -std=c++20 -fmodule-file=iostream.pcm fig16_03.cpp -fprebuilt-module-path=. string-pcm welcome.pcm -o fig16_03
 
+    # GCC/Clang General Compilation Options (equivalent to MSVC)
+    set(GCC_CLANG_COMPILE_GENERAL_OPTIONS
+        # Character set (equivalent to /utf-8)
+        -finput-charset=UTF-8
+        -fexec-charset=UTF-8
+        
+        # Strict standard compliance (equivalent to /permissive-)
+        -pedantic-errors
+        
+        # C++20 Modules Support (equivalent to /experimental:module)
+        # -fmodules-ts will be added per compiler below
+        
+        # Correct __cplusplus macro (equivalent to /Zc:__cplusplus)
+        # Handled by -std=c++20
+        
+        # Warning levels (equivalent to /W4)
+        -Wall
+        -Wextra
+        -Wpedantic
+        
+        # Treat warnings as errors (equivalent to /WX- but we enable it)
+        -Werror
+        
+        # Alignment (equivalent to /Zp8)
+        -malign-double
+        
+        # String pooling (equivalent to /GF)
+        -fmerge-all-constants
+        
+        # Floating point precision (equivalent to /fp:precise)
+        -fno-fast-math
+        
+        # OpenMP support (equivalent to /openmp:experimental)
+        -fopenmp
+        
+        # Security checks (equivalent to /sdl)
+        -fstack-protector-strong
+        -D_FORTIFY_SOURCE=2
+        
+        # Exception handling (equivalent to /EHsc, default in GCC/Clang)
+        -fexceptions
+        
+        # Diagnostic format (equivalent to /diagnostics:column)
+        -fdiagnostics-color=always
+        -fdiagnostics-show-option
+        -fno-omit-frame-pointer
+        
+        # AVX2 instruction set (equivalent to /arch:AVX2)
+        -mavx2
+        -mfma
+    )
+    
     # GCC/Clang Modules Support
     if(COMPILER_GCC)
         add_compile_options(-fmodules-ts -fmodule-mapper=inline)
     elseif(COMPILER_CLANG)
-        add_compile_options(-fmodules -fmodules-ts -fbuiltin-module-map -fimplicit-module-maps -fprebuilt-module-path=${CMAKE_CURRENT_BINARY_DIR})
+        add_compile_options(-fmodules -fbuiltin-module-map -fimplicit-module-maps -fprebuilt-module-path=${CMAKE_CURRENT_BINARY_DIR})
     endif()
     
+    add_compile_options("$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:${GCC_CLANG_COMPILE_GENERAL_OPTIONS}>")
+    
     add_compile_options(
-        -Wall
-        -Wextra
-        -Wpedantic
-        -Werror
         -Wno-unused-parameter
         -Wno-unused-variable
+        -Wno-unused-local-typedef
     )
-     add_link_options("-Wl,--stack,4194304")
+
+    add_link_options(
+        -fopenmp
+        #-fpermissive
+    )
+endif()
+if(MSVC OR (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+    add_link_options("-Wl,/STACK:4194304")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_link_options("-Wl,-z,stack-size=4194304")
 endif()
 
 # -----------------------------------------------------------------------------
@@ -134,7 +191,21 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         )
     else()
         # GCC/Clang Debug compilation options
-        add_compile_options(-g -O0 -fno-omit-frame-pointer)
+        # Equivalent to MSVC: /JMC /ZI /Od /RTC1
+        add_compile_options(
+            -g                    # Debug information (equivalent to /DEBUG)
+            -O0                   # Disable optimization (equivalent to /Od)
+            -fno-omit-frame-pointer
+            -fno-inline           # Disable inlining
+            -fno-optimize-sibling-calls
+            -fno-eliminate-unused-debug-types
+            -fno-common
+        )
+        
+        # GCC/Clang Debug link options
+        add_link_options(
+            -g
+        )
     endif()
     
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -161,7 +232,22 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
         )
     else()
         # GCC/Clang Release compilation options
-        add_compile_options(-O3)
+        # Equivalent to MSVC: /O2 /Ob2 /GL /GS /Qpar /Gy /Oi
+        add_compile_options(
+            -O3                   # Maximum optimization (equivalent to /O2)
+            -flto                 # Link-time optimization (equivalent to /GL)
+            -finline-functions     # Inline functions (equivalent to /Ob2)
+            -funroll-loops        # Unroll loops
+            -fomit-frame-pointer   # Omit frame pointer
+            -ffast-math           # Fast math operations
+        )
+        
+        # GCC/Clang Release link options
+        # Equivalent to MSVC: /LTCG /DEBUG:NONE
+        add_link_options(
+            -flto                 # Link-time optimization (equivalent to /LTCG)
+            -s                    # Strip symbols (equivalent to /DEBUG:NONE)
+        )
     endif()
     
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -188,7 +274,21 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         )
     else()
         # GCC/Clang RelWithDebInfo compilation options
-        add_compile_options(-O2 -g)
+        # Equivalent to MSVC: /O2 /Ob1 /Zi /GL /GS /Qpar /Gy /Oi
+        add_compile_options(
+            -O2                   # Optimize for speed (equivalent to /O2)
+            -g                    # Debug information (equivalent to /Zi)
+            -fno-omit-frame-pointer
+            -flto                 # Link-time optimization (equivalent to /GL)
+            -finline-functions-called-once
+        )
+        
+        # GCC/Clang RelWithDebInfo link options
+        # Equivalent to MSVC: /LTCG /DEBUG:FULL
+        add_link_options(
+            -flto                 # Link-time optimization (equivalent to /LTCG)
+            -g                    # Keep debug symbols (equivalent to /DEBUG:FULL)
+        )
     endif()
     
 else()
