@@ -15,6 +15,15 @@
 #define STRINGIFY(x)            #x
 #define EXPAND_AND_STRINGIFY(x) STRINGIFY(x)
 
+#ifdef _MSC_VER
+#  define WARNING(msg)                                                          \
+    __pragma(message(__FILE__ "(" _CRT_STRINGIZE(__LINE__) "): warning: " msg))
+#elif defined(__GNUC__) || defined(__clang__)
+#  define WARNING(msg) _Pragma(STRINGIFY(GCC warning msg))
+#else
+#  define WARNING(msg)
+#endif
+
 #if defined(__clang__)
 // Clang support clang loop unroll_count or unroll
 #  define LOOP_UNROLL(n) _Pragma(EXPAND_AND_STRINGIFY(clang loop unroll_count(n)))
@@ -290,6 +299,7 @@ ALWAYS_INLINE void Adl_distribute_to_buckets(
 template<typename T>
 struct SIMD_type_traits;
 
+#if defined(__AVX2__) || defined(__AVX__)
 template<>
 struct SIMD_type_traits<std::uint32_t>
 {
@@ -639,6 +649,376 @@ ALWAYS_INLINE void Adl_distribute_to_buckets_avx2_impl(
     Dst [Scanned_offsets [Byte_idx]++] = std::move(Value);
   }
 }
+#elif defined(__ARM_NEON) || defined(__aarch64__)
+template<>
+struct SIMD_type_traits<std::uint32_t>
+{
+  static constexpr bool Is_32bit = true;
+  using Simd_vec_t               = uint32x4_t;
+
+  static Simd_vec_t set1(std::uint32_t val) { return vdupq_n_u32(val); }
+
+  static Simd_vec_t srli(Simd_vec_t vec, int shift)
+  {
+    return vshrq_n_u32(vec, shift);
+  }
+
+  static Simd_vec_t xor_si(Simd_vec_t a, Simd_vec_t b) { return veorq_u32(a, b); }
+
+  static Simd_vec_t and_si(Simd_vec_t a, Simd_vec_t b) { return vandq_u32(a, b); }
+
+  static Simd_vec_t cmpeq(Simd_vec_t a, Simd_vec_t b) { return vceqq_u32(a, b); }
+
+  static Simd_vec_t blendv(Simd_vec_t a, Simd_vec_t b, Simd_vec_t mask)
+  {
+    return vbslq_u32(mask, b, a);
+  }
+
+  static Simd_vec_t sub_epi(Simd_vec_t a, Simd_vec_t b)
+  {
+    return vsubq_u32(a, b);
+  }
+};
+
+template<>
+struct SIMD_type_traits<std::uint64_t>
+{
+  static constexpr bool Is_32bit = false;
+  using Simd_vec_t               = uint64x2_t;
+
+  static Simd_vec_t set1(std::uint64_t val) { return vdupq_n_u64(val); }
+
+  static Simd_vec_t srli(Simd_vec_t vec, int shift)
+  {
+    return vshrq_n_u64(vec, shift);
+  }
+
+  static Simd_vec_t xor_si(Simd_vec_t a, Simd_vec_t b) { return veorq_u64(a, b); }
+
+  static Simd_vec_t and_si(Simd_vec_t a, Simd_vec_t b) { return vandq_u64(a, b); }
+
+  static Simd_vec_t cmpeq(Simd_vec_t a, Simd_vec_t b) { return vceqq_u64(a, b); }
+
+  static Simd_vec_t blendv(Simd_vec_t a, Simd_vec_t b, Simd_vec_t mask)
+  {
+    return vbslq_u64(mask, b, a);
+  }
+
+  static Simd_vec_t sub_epi(Simd_vec_t a, Simd_vec_t b)
+  {
+    return vsubq_u64(a, b);
+  }
+};
+
+template<typename Size_t, typename Value_t, typename Key_extractor_t,
+         typename Radix_cp, auto Radix_tp, bool Is_last_pass>
+ALWAYS_INLINE void Adl_distribute_to_buckets_neon_impl(
+    Size_t Start_idx, Size_t End_idx, Size_t Pass, Value_t* __restrict Src,
+    Value_t* __restrict Dst, Size_t* Scanned_offsets,
+    const Key_extractor_t& Extractor, [[maybe_unused]] Size_t Thread_NaN_offset)
+{
+  using Key_t      = std::decay_t<decltype(Extractor(std::declval<Value_t>()))>;
+  using Unsigned_t = typename Radix_cp::Unsigned_t;
+  using SIMDTraits = SIMD_type_traits<Unsigned_t>;
+  using Simd_vec_t = typename SIMDTraits::Simd_vec_t;
+
+  constexpr Size_t simd_width = std::is_same_v<Unsigned_t, std::uint32_t> ? 4 : 2;
+  Size_t simd_end = Start_idx + ((End_idx - Start_idx) / simd_width) * simd_width;
+
+  Simd_vec_t mask = SIMDTraits::set1(static_cast<Unsigned_t>(Radix_cp::Mask));
+  Simd_vec_t sign_bit_mask = SIMDTraits::set1(Radix_cp::Sign_bit_mask);
+  Simd_vec_t all_bits_mask = SIMDTraits::set1(Radix_cp::All_bits_mask);
+
+  for (Size_t Idx = Start_idx; Idx < simd_end; Idx += simd_width) {
+    Simd_vec_t          keys;
+    alignas(16) Value_t values [simd_width];
+    bool                is_nan [simd_width] = { false };
+
+    if constexpr (std::is_same_v<Value_t, Key_t>) {
+      if constexpr (simd_width == 4) {
+        keys = vld1q_u32(reinterpret_cast<const uint32_t*>(Src + Idx));
+      } else {
+        keys = vld1q_u64(reinterpret_cast<const uint64_t*>(Src + Idx));
+      }
+      for (Size_t i = 0; i < simd_width; ++i) {
+        values [i] = Src [Idx + i];
+      }
+    } else {
+      alignas(16) Unsigned_t keys_arr [simd_width];
+      for (Size_t i = 0; i < simd_width; ++i) {
+        values [i]   = Src [Idx + i];
+        keys_arr [i] = std::bit_cast<Unsigned_t>(Extractor(values [i]));
+      }
+      if constexpr (simd_width == 4) {
+        keys = vld1q_u32(keys_arr);
+      } else {
+        keys = vld1q_u64(keys_arr);
+      }
+    }
+
+    if constexpr (std::is_floating_point_v<Key_t> && Is_last_pass &&
+                  Radix_tp.NaN_position != NaNPosition::Unhandled) {
+      for (Size_t i = 0; i < simd_width; ++i) {
+        auto Key = Extractor(values [i]);
+        if (std::isnan(Key)) [[unlikely]] {
+          is_nan [i] = true;
+          if constexpr (Radix_tp.NaN_position == NaNPosition::AtStart) {
+            Dst [--Thread_NaN_offset] = std::move(values [i]);
+          } else if constexpr (Radix_tp.NaN_position == NaNPosition::AtEnd) {
+            Dst [Thread_NaN_offset++] = std::move(values [i]);
+          }
+        }
+      }
+    }
+
+    if constexpr (std::is_floating_point_v<Key_t> &&
+                  Radix_tp.Has_negative == HasNegative::Yes) {
+      if constexpr (Is_last_pass) {
+        alignas(16) Unsigned_t keys_arr [simd_width];
+        if constexpr (simd_width == 4) {
+          vst1q_u32(keys_arr, keys);
+        } else {
+          vst1q_u64(keys_arr, keys);
+        }
+
+        for (Size_t i = 0; i < simd_width; ++i) {
+          if (is_nan [i]) continue;
+          keys_arr [i] ^= ((keys_arr [i] >> Radix_cp::Shift_of_sign_bit) == 0)
+              ? Radix_cp::Sign_bit_mask
+              : Radix_cp::All_bits_mask;
+        }
+
+        if constexpr (simd_width == 4) {
+          keys = vld1q_u32(keys_arr);
+        } else {
+          keys = vld1q_u64(keys_arr);
+        }
+      } else {
+        Simd_vec_t sign_bits   = SIMDTraits::and_si(keys, sign_bit_mask);
+        Simd_vec_t is_negative = SIMDTraits::cmpeq(sign_bits, sign_bit_mask);
+        Simd_vec_t xor_mask =
+            SIMDTraits::blendv(SIMDTraits::set1(0), all_bits_mask, is_negative);
+        keys = SIMDTraits::xor_si(keys, xor_mask);
+      }
+    } else if constexpr (std::is_integral_v<Key_t> &&
+                         Radix_tp.Has_negative == HasNegative::Yes &&
+                         Is_last_pass) {
+      keys = SIMDTraits::xor_si(keys, sign_bit_mask);
+    }
+
+    const int shift_amount =
+        static_cast<int>(Pass << Radix_cp::Shift_of_byte_idx);
+    Simd_vec_t shifted      = SIMDTraits::srli(keys, shift_amount);
+    Simd_vec_t byte_indices = SIMDTraits::and_si(shifted, mask);
+
+    if constexpr (Radix_tp.Order == SortOrder::Descending) {
+      byte_indices = SIMDTraits::sub_epi(mask, byte_indices);
+    }
+
+    alignas(16) Unsigned_t indices [simd_width];
+    if constexpr (simd_width == 4) {
+      vst1q_u32(indices, byte_indices);
+    } else {
+      vst1q_u64(indices, byte_indices);
+    }
+
+    for (Size_t i = 0; i < simd_width; ++i) {
+      if (is_nan [i]) continue;
+      Dst [Scanned_offsets [indices [i]]++] = std::move(values [i]);
+    }
+  }
+
+  for (Size_t Idx = simd_end; Idx < End_idx; ++Idx) {
+    auto&      Value          = Src [Idx];
+    auto       Key            = Extractor(Value);
+    Unsigned_t Unsigned_value = std::bit_cast<Unsigned_t>(Key);
+
+    if constexpr (std::is_floating_point_v<Key_t> && Is_last_pass &&
+                  Radix_tp.NaN_position != NaNPosition::Unhandled) {
+      if (std::isnan(Key)) [[unlikely]] {
+        if constexpr (Radix_tp.NaN_position == NaNPosition::AtStart) {
+          Dst [--Thread_NaN_offset] = std::move(Value);
+        } else if constexpr (Radix_tp.NaN_position == NaNPosition::AtEnd) {
+          Dst [Thread_NaN_offset++] = std::move(Value);
+        }
+        continue;
+      }
+    }
+
+    if constexpr (std::is_floating_point_v<Key_t> &&
+                  Radix_tp.Has_negative == HasNegative::Yes) {
+      if constexpr (Is_last_pass) {
+        Unsigned_value ^= ((Unsigned_value >> Radix_cp::Shift_of_sign_bit) == 0)
+            ? Radix_cp::Sign_bit_mask
+            : Radix_cp::All_bits_mask;
+      } else {
+        if (Unsigned_value >> Radix_cp::Shift_of_sign_bit)
+          Unsigned_value ^= Radix_cp::All_bits_mask;
+      }
+    } else if constexpr (std::is_integral_v<Key_t> &&
+                         Radix_tp.Has_negative == HasNegative::Yes &&
+                         Is_last_pass) {
+      Unsigned_value ^= Radix_cp::Sign_bit_mask;
+    }
+
+    std::uint16_t Byte_idx =
+        (Unsigned_value >> (Pass << Radix_cp::Shift_of_byte_idx)) &
+        Radix_cp::Mask;
+    if constexpr (Radix_tp.Order == SortOrder::Descending)
+      Byte_idx = Radix_cp::Mask - Byte_idx;
+    Dst [Scanned_offsets [Byte_idx]++] = std::move(Value);
+  }
+}
+
+template<typename Size_t, typename Value_t, typename Key_extractor_t,
+         typename Radix_cp, auto Radix_tp, bool Is_last_pass>
+ALWAYS_INLINE void Adl_count_buckets_neon_impl(
+    Size_t Start_idx, Size_t End_idx, Size_t Pass, const Value_t* __restrict Src,
+    Size_t* Bucket_counts, const Key_extractor_t& Extractor,
+    [[maybe_unused]] Size_t* NaN_counts, [[maybe_unused]] int Thread_id)
+{
+  using Key_t      = std::decay_t<decltype(Extractor(std::declval<Value_t>()))>;
+  using Unsigned_t = typename Radix_cp::Unsigned_t;
+  using SIMDTraits = SIMD_type_traits<Unsigned_t>;
+  using Simd_vec_t = typename SIMDTraits::Simd_vec_t;
+
+  constexpr Size_t simd_width = std::is_same_v<Unsigned_t, std::uint32_t> ? 4 : 2;
+  Size_t simd_end = Start_idx + ((End_idx - Start_idx) / simd_width) * simd_width;
+
+  Simd_vec_t mask = SIMDTraits::set1(static_cast<Unsigned_t>(Radix_cp::Mask));
+  Simd_vec_t sign_bit_mask = SIMDTraits::set1(Radix_cp::Sign_bit_mask);
+  Simd_vec_t all_bits_mask = SIMDTraits::set1(Radix_cp::All_bits_mask);
+
+  for (Size_t Idx = Start_idx; Idx < simd_end; Idx += simd_width) {
+    Simd_vec_t keys;
+    bool       is_nan [simd_width] = { false };
+
+    if constexpr (std::is_same_v<Value_t, Key_t>) {
+      if constexpr (simd_width == 4) {
+        keys = vld1q_u32(reinterpret_cast<const uint32_t*>(Src + Idx));
+      } else {
+        keys = vld1q_u64(reinterpret_cast<const uint64_t*>(Src + Idx));
+      }
+    } else {
+      alignas(16) Unsigned_t keys_arr [simd_width];
+      if constexpr (Is_last_pass &&
+                    Radix_tp.NaN_position != NaNPosition::Unhandled) {
+        for (Size_t i = 0; i < simd_width; ++i) {
+          auto Key = Extractor(Src [Idx + i]);
+          if (std::isnan(Key)) [[unlikely]] {
+            ++NaN_counts [Thread_id];
+            is_nan [i]   = true;
+            keys_arr [i] = 0;
+          } else {
+            keys_arr [i] = std::bit_cast<Unsigned_t>(Key);
+          }
+        }
+      } else {
+        for (Size_t i = 0; i < simd_width; ++i) {
+          keys_arr [i] = std::bit_cast<Unsigned_t>(Extractor(Src [Idx + i]));
+        }
+      }
+      if constexpr (simd_width == 4) {
+        keys = vld1q_u32(keys_arr);
+      } else {
+        keys = vld1q_u64(keys_arr);
+      }
+    }
+
+    if constexpr (std::is_floating_point_v<Key_t> &&
+                  Radix_tp.Has_negative == HasNegative::Yes) {
+      if constexpr (!Is_last_pass) {
+        Simd_vec_t sign_bits   = SIMDTraits::and_si(keys, sign_bit_mask);
+        Simd_vec_t is_negative = SIMDTraits::cmpeq(sign_bits, sign_bit_mask);
+        Simd_vec_t xor_mask =
+            SIMDTraits::blendv(SIMDTraits::set1(0), all_bits_mask, is_negative);
+        keys = SIMDTraits::xor_si(keys, xor_mask);
+      } else if constexpr (Is_last_pass) {
+        alignas(16) Unsigned_t keys_arr [simd_width];
+        if constexpr (simd_width == 4) {
+          vst1q_u32(keys_arr, keys);
+        } else {
+          vst1q_u64(keys_arr, keys);
+        }
+
+        for (Size_t i = 0; i < simd_width; ++i) {
+          if (is_nan [i]) continue;
+          keys_arr [i] ^= ((keys_arr [i] >> Radix_cp::Shift_of_sign_bit) == 0)
+              ? Radix_cp::Sign_bit_mask
+              : Radix_cp::All_bits_mask;
+        }
+
+        if constexpr (simd_width == 4) {
+          keys = vld1q_u32(keys_arr);
+        } else {
+          keys = vld1q_u64(keys_arr);
+        }
+      }
+    } else if constexpr (std::is_integral_v<Key_t> &&
+                         Radix_tp.Has_negative == HasNegative::Yes &&
+                         Is_last_pass) {
+      keys = SIMDTraits::xor_si(keys, sign_bit_mask);
+    }
+
+    const int shift_amount =
+        static_cast<int>(Pass << Radix_cp::Shift_of_byte_idx);
+    Simd_vec_t shifted      = SIMDTraits::srli(keys, shift_amount);
+    Simd_vec_t byte_indices = SIMDTraits::and_si(shifted, mask);
+
+    if constexpr (Radix_tp.Order == SortOrder::Descending) {
+      byte_indices = SIMDTraits::sub_epi(mask, byte_indices);
+    }
+
+    alignas(16) Unsigned_t indices [simd_width];
+    if constexpr (simd_width == 4) {
+      vst1q_u32(indices, byte_indices);
+    } else {
+      vst1q_u64(indices, byte_indices);
+    }
+
+    for (Size_t i = 0; i < simd_width; ++i) {
+      if (is_nan [i]) continue;
+      ++Bucket_counts [indices [i]];
+    }
+  }
+
+  for (Size_t Idx = simd_end; Idx < End_idx; ++Idx) {
+    auto       Key            = Extractor(Src [Idx]);
+    Unsigned_t Unsigned_value = std::bit_cast<Unsigned_t>(Key);
+
+    if constexpr (Is_last_pass &&
+                  Radix_tp.NaN_position != NaNPosition::Unhandled) {
+      if (std::isnan(Key)) [[unlikely]] {
+        ++NaN_counts [Thread_id];
+        continue;
+      }
+    }
+
+    if constexpr (std::is_floating_point_v<Key_t> &&
+                  Radix_tp.Has_negative == HasNegative::Yes) {
+      if constexpr (Is_last_pass) {
+        Unsigned_value ^= ((Unsigned_value >> Radix_cp::Shift_of_sign_bit) == 0)
+            ? Radix_cp::Sign_bit_mask
+            : Radix_cp::All_bits_mask;
+      } else {
+        if (Unsigned_value >> Radix_cp::Shift_of_sign_bit)
+          Unsigned_value ^= Radix_cp::All_bits_mask;
+      }
+    } else if constexpr (std::is_integral_v<Key_t> &&
+                         Radix_tp.Has_negative == HasNegative::Yes &&
+                         Is_last_pass) {
+      Unsigned_value ^= Radix_cp::Sign_bit_mask;
+    }
+
+    std::uint16_t Byte_idx =
+        (Unsigned_value >> (Pass << Radix_cp::Shift_of_byte_idx)) &
+        Radix_cp::Mask;
+    if constexpr (Radix_tp.Order == SortOrder::Descending)
+      Byte_idx = Radix_cp::Mask - Byte_idx;
+    ++Bucket_counts [Byte_idx];
+  }
+}
+#endif
 
 template<typename Size_t, typename Value_t, typename Key_extractor_t,
          typename Radix_cp, auto Radix_tp, bool Is_last_pass>
@@ -648,15 +1028,17 @@ ALWAYS_INLINE void Adl_count_buckets_simd(
     [[maybe_unused]] Size_t* NaN_counts, [[maybe_unused]] int Thread_id)
 {
   using Unsigned_t = typename Radix_cp::Unsigned_t;
-
-  if (simd::has_avx2()) {
-    Adl_count_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
-                                Radix_tp, Is_last_pass>(
-        Start_idx, End_idx, Pass, Src, Bucket_counts, Extractor, NaN_counts,
-        Thread_id);
-  } else if (simd::has_avx()) {
-    // TODO
-  }
+#if defined(__AVX2__) || defined(__AVX__)
+  Adl_count_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                              Radix_tp, Is_last_pass>(
+      Start_idx, End_idx, Pass, Src, Bucket_counts, Extractor, NaN_counts,
+      Thread_id);
+#elif defined(__ARM_NEON) || defined(__aarch64__)
+  Adl_count_buckets_neon_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                              Radix_tp, Is_last_pass>(
+      Start_idx, End_idx, Pass, Src, Bucket_counts, Extractor, NaN_counts,
+      Thread_id);
+#endif
 }
 
 template<typename Size_t, typename Value_t, typename Key_extractor_t,
@@ -667,15 +1049,17 @@ ALWAYS_INLINE void Adl_distribute_to_buckets_simd(
     const Key_extractor_t& Extractor, [[maybe_unused]] Size_t Thread_NaN_offset)
 {
   using Unsigned_t = typename Radix_cp::Unsigned_t;
-
-  if (simd::has_avx2()) {
-    Adl_distribute_to_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t,
-                                        Radix_cp, Radix_tp, Is_last_pass>(
-        Start_idx, End_idx, Pass, Src, Dst, Scanned_offsets, Extractor,
-        Thread_NaN_offset);
-  } else if (simd::has_avx()) {
-    // TODO
-  }
+#if defined(__AVX2__) || defined(__AVX__)
+  Adl_distribute_to_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                                      Radix_tp, Is_last_pass>(
+      Start_idx, End_idx, Pass, Src, Dst, Scanned_offsets, Extractor,
+      Thread_NaN_offset);
+#elif defined(__ARM_NEON) || defined(__aarch64__)
+  Adl_distribute_to_buckets_neon_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                                      Radix_tp, Is_last_pass>(
+      Start_idx, End_idx, Pass, Src, Dst, Scanned_offsets, Extractor,
+      Thread_NaN_offset);
+#endif
 }
 
 }  // namespace details
@@ -838,7 +1222,7 @@ template<ContiguousIterator ContigIter,
 void radix_sort_impl(std::execution::unsequenced_policy, ContigIter First,
                      ContigIter Last)
 {
-#if defined(__AVX2__) || defined(__AVX__)
+#if defined(__AVX2__) || defined(__ARM_NEON) || defined(__aarch64__)
   static_assert(is_valid_bucket_size<Radix_tp.Bucket_size>,
                 "Bucket size must be 256 or 65536");
 
@@ -886,9 +1270,8 @@ void radix_sort_impl(std::execution::unsequenced_policy, ContigIter First,
 #  endif
 
   for (std::uint8_t Pass = 0; Pass < Radix_cp::Passes - 1; ++Pass) {
-    // Adl_count_buckets_simd
-    Adl_count_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
-                                Radix_tp, false>(
+    Adl_count_buckets_simd<Size_t, Value_t, Key_extractor_t, Radix_cp, Radix_tp,
+                           false>(
         /*Start_idx     */ 0,
         /*End_idx       */ Size,
         /*Pass          */ Pass,
@@ -901,9 +1284,8 @@ void radix_sort_impl(std::execution::unsequenced_policy, ContigIter First,
     std::exclusive_scan(Bucket_counts.begin(), Bucket_counts.end(),
                         Scanned_offsets.begin(), 0, std::plus<> {});
 
-    // Adl_distribute_to_buckets_simd
-    Adl_distribute_to_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t,
-                                        Radix_cp, Radix_tp, false>(
+    Adl_distribute_to_buckets_simd<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                                   Radix_tp, false>(
         /*Start_idx       */ 0,
         /*End_idx         */ Size,
         /*Pass            */ Pass,
@@ -921,9 +1303,8 @@ void radix_sort_impl(std::execution::unsequenced_policy, ContigIter First,
       Radix_tp.NaN_position != NaNPosition::Unhandled;
   [[maybe_unused]] std::array<Size_t, Handle_NaN ? 1 : 0> NaN_counts {};
 
-  // Adl_count_buckets_simd
-  Adl_count_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
-                              Radix_tp, true>(
+  Adl_count_buckets_simd<Size_t, Value_t, Key_extractor_t, Radix_cp, Radix_tp,
+                         true>(
       /*Start_idx     */ 0,
       /*End_idx       */ Size,
       /*Pass          */ Radix_cp::Passes - 1,
@@ -950,9 +1331,8 @@ void radix_sort_impl(std::execution::unsequenced_policy, ContigIter First,
     }
   }
 
-  // Adl_distribute_to_buckets_simd
-  Adl_distribute_to_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
-                                      Radix_tp, true>(
+  Adl_distribute_to_buckets_simd<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                                 Radix_tp, true>(
       /*Start_idx       */ 0,
       /*End_idx         */ Size,
       /*Pass            */ Radix_cp::Passes - 1,
@@ -1260,7 +1640,7 @@ template<ContiguousIterator ContigIter,
 void radix_sort_impl(std::execution::parallel_unsequenced_policy,
                      ContigIter First, ContigIter Last)
 {
-#if defined(__AVX2__)
+#if defined(__AVX2__) || defined(__ARM_NEON) || defined(__aarch64__)
   static_assert(is_valid_bucket_size<Radix_tp.Bucket_size>,
                 "Bucket size must be 256 or 65536");
 
@@ -1339,9 +1719,8 @@ void radix_sort_impl(std::execution::parallel_unsequenced_policy,
         const Size_t End_idx   = std::min(Size, (Thread_id + 1) * Chunk);
 
         // Local counting with SIMD
-        // Adl_count_buckets_simd
-        Adl_count_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
-                                    Radix_tp, false>(
+        Adl_count_buckets_simd<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                               Radix_tp, false>(
             /*Start_idx     */ Start_idx,
             /*End_idx       */ End_idx,
             /*Pass          */ Pass,
@@ -1399,9 +1778,8 @@ void radix_sort_impl(std::execution::parallel_unsequenced_policy,
         const Size_t End_idx   = std::min(Size, (Thread_id + 1) * Chunk);
 
         // Scatter elements to correct positions with SIMD
-        // Adl_distribute_to_buckets_simd
-        Adl_distribute_to_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t,
-                                            Radix_cp, Radix_tp, false>(
+        Adl_distribute_to_buckets_simd<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                                       Radix_tp, false>(
             /*Start_idx       */ Start_idx,
             /*End_idx         */ End_idx,
             /*Pass            */ Pass,
@@ -1438,9 +1816,8 @@ void radix_sort_impl(std::execution::parallel_unsequenced_policy,
         const Size_t End_idx   = std::min(Size, (Thread_id + 1) * Chunk);
 
         // Local counting with SIMD for last pass
-        // Adl_count_buckets_simd
-        Adl_count_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t, Radix_cp,
-                                    Radix_tp, true>(
+        Adl_count_buckets_simd<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                               Radix_tp, true>(
             /*Start_idx     */ Start_idx,
             /*End_idx       */ End_idx,
             /*Pass          */ Radix_cp::Passes - 1,
@@ -1520,9 +1897,8 @@ void radix_sort_impl(std::execution::parallel_unsequenced_policy,
         const Size_t End_idx   = std::min(Size, (Thread_id + 1) * Chunk);
 
         // Scatter elements to correct positions with SIMD for last pass
-        // Adl_distribute_to_buckets_simd
-        Adl_distribute_to_buckets_avx2_impl<Size_t, Value_t, Key_extractor_t,
-                                            Radix_cp, Radix_tp, true>(
+        Adl_distribute_to_buckets_simd<Size_t, Value_t, Key_extractor_t, Radix_cp,
+                                       Radix_tp, true>(
             /*Start_idx       */ Start_idx,
             /*End_idx         */ End_idx,
             /*Pass            */ Radix_cp::Passes - 1,
@@ -1864,6 +2240,8 @@ void dispatch_radix_sort(std::execution::sequenced_policy policy,
 }  // namespace experimental
 }  // namespace stdex
 
+#undef WARNING
+#undef ALWAYS_INLINE
 #undef LOOP_UNROLL
 #undef EXPAND_AND_STRINGIFY
 #undef STRINGIFY

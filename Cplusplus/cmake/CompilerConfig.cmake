@@ -200,6 +200,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
             -fno-optimize-sibling-calls
             -fno-eliminate-unused-debug-types
             -fno-common
+            #-fno-strict-aliasing
         )
         
         # GCC/Clang Debug link options

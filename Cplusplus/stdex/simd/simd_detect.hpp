@@ -98,12 +98,32 @@ constexpr bool is_arm_architecture(Architecture arch) noexcept
 
 constexpr bool is_x86_instruction_set(InstructionSet iset) noexcept
 {
-  return iset >= InstructionSet::sse2 && iset <= InstructionSet::avx512f;
+  return iset == InstructionSet::mmx ||
+         iset == InstructionSet::sse ||
+         iset == InstructionSet::sse2 ||
+         iset == InstructionSet::sse3 ||
+         iset == InstructionSet::ssse3 ||
+         iset == InstructionSet::sse4_1 ||
+         iset == InstructionSet::sse4_2 ||
+         iset == InstructionSet::avx ||
+         iset == InstructionSet::avx2 ||
+         iset == InstructionSet::avx512f ||
+         iset == InstructionSet::avx512dq ||
+         iset == InstructionSet::avx512ifma ||
+         iset == InstructionSet::avx512pf ||
+         iset == InstructionSet::avx512er ||
+         iset == InstructionSet::avx512cd ||
+         iset == InstructionSet::avx512bw ||
+         iset == InstructionSet::avx512vl ||
+         iset == InstructionSet::avx512vbmi;
 }
 
 constexpr bool is_arm_instruction_set(InstructionSet iset) noexcept
 {
-  return iset >= InstructionSet::neon && iset <= InstructionSet::sve;
+  return iset == InstructionSet::neon ||
+         iset == InstructionSet::neon64 ||
+         iset == InstructionSet::sve ||
+         iset == InstructionSet::sve2;
 }
 
 namespace detail {
@@ -314,120 +334,143 @@ inline bool has_simd_support() noexcept
   return get_instruction_set() != InstructionSet::none;
 }
 
+inline bool has_mmx() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset == InstructionSet::mmx;
+}
+
+inline bool has_sse() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::sse;
+}
+
 inline bool has_sse2() noexcept
 {
-  return get_instruction_set() >= InstructionSet::sse2;
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::sse2;
+}
+
+inline bool has_sse3() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::sse3;
+}
+
+inline bool has_ssse3() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::ssse3;
 }
 
 inline bool has_sse4_1() noexcept
 {
-  return get_instruction_set() >= InstructionSet::sse4_1;
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::sse4_1;
+}
+
+inline bool has_sse4_2() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::sse4_2;
 }
 
 inline bool has_avx() noexcept
 {
-  return get_instruction_set() >= InstructionSet::avx;
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx;
 }
 
 inline bool has_avx2() noexcept
 {
-  return get_instruction_set() >= InstructionSet::avx2;
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx2;
 }
 
 inline bool has_avx512() noexcept
 {
-  return get_instruction_set() >= InstructionSet::avx512f;
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512f;
+}
+
+inline bool has_avx512f() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512f;
+}
+
+inline bool has_avx512dq() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512dq;
+}
+
+inline bool has_avx512ifma() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512ifma;
+}
+
+inline bool has_avx512pf() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512pf;
+}
+
+inline bool has_avx512er() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512er;
+}
+
+inline bool has_avx512cd() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512cd;
+}
+
+inline bool has_avx512bw() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512bw;
+}
+
+inline bool has_avx512vl() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512vl;
+}
+
+inline bool has_avx512vbmi() noexcept
+{
+  InstructionSet iset = get_instruction_set();
+  return is_x86_architecture(get_architecture()) && iset >= InstructionSet::avx512vbmi;
 }
 
 inline bool has_neon() noexcept
 {
   InstructionSet iset = get_instruction_set();
-  return iset == InstructionSet::neon || iset == InstructionSet::neon64;
+  return is_arm_architecture(get_architecture()) && 
+         (iset == InstructionSet::neon || iset == InstructionSet::neon64);
 }
 
 inline bool has_neon64() noexcept
 {
-  return get_instruction_set() == InstructionSet::neon64;
-}
-
-inline bool has_mmx() noexcept
-{
-  return get_instruction_set() >= InstructionSet::mmx;
-}
-
-inline bool has_sse() noexcept
-{
-  return get_instruction_set() >= InstructionSet::sse;
-}
-
-inline bool has_sse3() noexcept
-{
-  return get_instruction_set() >= InstructionSet::sse3;
-}
-
-inline bool has_ssse3() noexcept
-{
-  return get_instruction_set() >= InstructionSet::ssse3;
-}
-
-inline bool has_sse4_2() noexcept
-{
-  return get_instruction_set() >= InstructionSet::sse4_2;
-}
-
-inline bool has_avx512f() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512f;
-}
-
-inline bool has_avx512dq() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512dq;
-}
-
-inline bool has_avx512ifma() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512ifma;
-}
-
-inline bool has_avx512pf() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512pf;
-}
-
-inline bool has_avx512er() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512er;
-}
-
-inline bool has_avx512cd() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512cd;
-}
-
-inline bool has_avx512bw() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512bw;
-}
-
-inline bool has_avx512vl() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512vl;
-}
-
-inline bool has_avx512vbmi() noexcept
-{
-  return get_instruction_set() >= InstructionSet::avx512vbmi;
+  InstructionSet iset = get_instruction_set();
+  return is_arm_architecture(get_architecture()) && iset == InstructionSet::neon64;
 }
 
 inline bool has_sve() noexcept
 {
-  return get_instruction_set() >= InstructionSet::sve;
+  InstructionSet iset = get_instruction_set();
+  return is_arm_architecture(get_architecture()) && iset >= InstructionSet::sve;
 }
 
 inline bool has_sve2() noexcept
 {
-  return get_instruction_set() >= InstructionSet::sve2;
+  InstructionSet iset = get_instruction_set();
+  return is_arm_architecture(get_architecture()) && iset >= InstructionSet::sve2;
 }
 
 template<typename T>
